@@ -4,11 +4,18 @@ uvicorn==0.35.0
 
 # Authentication & Security
 python-jose[cryptography]==3.5.0
+bcrypt==4.0.1
 passlib[bcrypt]==1.7.4
+
+# Database
+sqlalchemy==2.0.23
+pymysql==1.1.0
+cryptography==45.0.7
 
 # Data validation
 pydantic==2.11.7
 pydantic_core==2.33.2
+email-validator==2.1.0
 
 # HTTP & Forms
 python-multipart==0.0.20
@@ -16,10 +23,6 @@ starlette==0.47.3
 
 # Environment & Configuration
 python-dotenv==1.1.1
-
-# Cryptography
-cryptography==45.0.7
-cffi==1.17.1
 
 # Utilities
 click==8.2.1

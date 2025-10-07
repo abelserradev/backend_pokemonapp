@@ -1,7 +1,6 @@
 from fastapi import FastAPI
-from app.routes import auth
+from app.routes import auth, pokemon
 from fastapi.middleware.cors import CORSMiddleware
-
 
 app = FastAPI()
 
@@ -13,10 +12,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 app.include_router(auth.router, prefix="/api")
-
+app.include_router(pokemon.router, prefix="/api/pokemon", tags=["Pokemon"])
 
 @app.get("/")
 def home():
-    return{"message": "¡Bienvenido al backend de Pokemon"}
+    return {"message": "¡Bienvenido al backend de Pokemon"}
