@@ -14,10 +14,8 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar todo el código de la aplicación
 COPY . .
 
-RUN chmod +x start.sh
-
 # Exponer el puerto (Railway lo asigna dinámicamente)
 EXPOSE $PORT
 
-# Comando de inicio usando el script
-CMD ["./start.sh"]
+# Comando de inicio directo
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
