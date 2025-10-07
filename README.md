@@ -31,11 +31,10 @@ backend/
 │   ├── database.py      # Configuración de BD
 │   └── main.py          # Aplicación principal
 ├── requirements.txt     # Dependencias
-├── railway.json         # Configuración Railway
-├── nixpacks.toml        # Configuración Nixpacks
-├── Procfile            # Comando de inicio
-├── runtime.txt         # Versión de Python
-├── .gitignore          # Archivos ignorados
+├── Dockerfile          # Configuración Docker para Railway
+├── .dockerignore       # Archivos ignorados por Docker
+├── railway.json        # Configuración Railway
+├── .gitignore          # Archivos ignorados por Git
 └── .env                # Variables de entorno (no commiteado)
 ```
 

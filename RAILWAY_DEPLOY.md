@@ -8,12 +8,11 @@
 
 ## 🔧 Archivos de Configuración
 
-Railway usa **Nixpacks** para detectar y construir tu aplicación. Los siguientes archivos ya están configurados:
+Railway usa **Docker** para construir y desplegar tu aplicación. Los siguientes archivos ya están configurados:
 
-- **`railway.json`** - Configuración específica de Railway
-- **`nixpacks.toml`** - Comando de inicio para Nixpacks
-- **`Procfile`** - Comando de inicio alternativo
-- **`runtime.txt`** - Versión de Python (3.11.0)
+- **`Dockerfile`** - Define el entorno y comando de inicio
+- **`.dockerignore`** - Archivos ignorados durante el build de Docker
+- **`railway.json`** - Configuración específica de Railway (usa builder DOCKERFILE)
 
 ## 🔧 Variables de Entorno Requeridas
 
