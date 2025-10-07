@@ -1,7 +1,11 @@
 from jose import jwt
 from datetime import datetime, timedelta
+import os
+from dotenv import load_dotenv
 
-SECRET_KEY = "tu_clave_secreta"  # Debería estar en .env
+load_dotenv()
+
+SECRET_KEY = os.getenv("SECRET_KEY", "default-secret-key-change-this")
 
 def create_token(data: dict, expires_delta: timedelta):
     to_encode = data.copy()

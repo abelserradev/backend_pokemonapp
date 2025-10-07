@@ -3,8 +3,12 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
 
-# URL de conexión a MySQL - CAMBIA LA CONTRASEÑA
-DATABASE_URL = "mysql+pymysql://root:1402@localhost:3306/pokemon_backend"
+# URL de conexión para Railway
+DATABASE_URL = os.getenv(
+    "DATABASE_URL", 
+    # Reemplaza estos valores con los de tu Railway
+    "mysql+pymysql://root:xJCPnVfqugVbCHiMieNZkDOcHzWDKzWX@mysql.railway.internal:3306/railway"
+)
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
