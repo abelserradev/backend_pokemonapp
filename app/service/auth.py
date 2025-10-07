@@ -8,8 +8,13 @@ from app.models.user import UserCreate
 from app.models.database import User
 from app.database import get_db
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
+import os
+from dotenv import load_dotenv
 
-secret_key = "09d25e094faa6ca2556c818166b7a9563b93f7099f6f0f4caa6cf63b88e8d3e7"
+load_dotenv()
+
+# Configuración desde variables de entorno
+secret_key = os.getenv("SECRET_KEY", "default-secret-key-change-this")
 algorithm = "HS256"
 access_token_expire_minutes = 30
 
