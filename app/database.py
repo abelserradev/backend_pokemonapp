@@ -4,16 +4,21 @@ from sqlalchemy.ext.declarative import declarative_base
 import os
 
 # URL de conexión para Railway
-DATABASE_URL = os.getenv(
-    "DATABASE_URL", 
-    # Reemplaza estos valores con los de tu Railway
-    "mysql+pymysql://root:xJCPnVfqugVbCHiMieNZkDOcHzWDKzWX@mysql.railway.internal:3306/railway"
-)
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-engine = create_engine(DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable is not set")
 
-Base = declarative_base()
+print(f"DEBUG - DATABASE_URL: {DATABASE_URL}")
+
+try:
+    engine = create_engine(DATABASE_URL)
+    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+    Base = declarative_base()
+    print("DEBUG - Database connection successful")
+except Exception as e:
+    print(f"DEBUG - Database connection error: {e}")
+    raise
 
 # Función para obtener la sesión de la base de datos
 def get_db():
@@ -22,5 +27,3 @@ def get_db():
         yield db
     finally:
         db.close()
-
-        
