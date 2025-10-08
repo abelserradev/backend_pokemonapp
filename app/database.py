@@ -7,11 +7,29 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
+# Debug: Mostrar TODAS las variables de entorno disponibles
+print("🔍 DEBUG - TODAS las variables de entorno disponibles:")
+for key, value in os.environ.items():
+    print(f"  {key}: {value}")
+
+print(f"🔍 DEBUG - Total de variables: {len(os.environ)}")
+
 # URL de conexión para Railway
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    print("❌ DATABASE_URL no encontrada en variables de entorno")
+    print("🔍 Variables disponibles:", list(os.environ.keys()))
+    print("🔍 Intentando usar variables alternativas...")
+    
+    # Intentar otras variables comunes de Railway
+    DATABASE_URL = os.getenv("MYSQL_URL") or os.getenv("DATABASE_URL") or os.getenv("MYSQL_DATABASE_URL")
+    
+    if not DATABASE_URL:
+        print("❌ No se encontró ninguna variable de base de datos")
+        raise ValueError("DATABASE_URL environment variable is not set")
+    else:
+        print(f"✅ Usando variable alternativa: {DATABASE_URL[:50]}...")
 
 # Convertir mysql:// a mysql+pymysql:// automáticamente
 if DATABASE_URL.startswith("mysql://"):
