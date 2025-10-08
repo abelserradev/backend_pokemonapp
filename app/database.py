@@ -10,19 +10,22 @@ load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    print("⚠️  DATABASE_URL no encontrada. Usando configuración de desarrollo...")
-    # Configuración por defecto para desarrollo local
-    DATABASE_URL = "mysql+pymysql://root:tu_password@localhost:3306/pokemon"
+    raise ValueError("DATABASE_URL environment variable is not set")
 
-print(f"DEBUG - DATABASE_URL: {DATABASE_URL}")
+# Convertir mysql:// a mysql+pymysql:// automáticamente
+if DATABASE_URL.startswith("mysql://"):
+    DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
+    print("✅ URL convertida a pymysql driver")
+
+print(f"DEBUG - DATABASE_URL: {DATABASE_URL[:50]}...")  # Solo mostrar los primeros 50 caracteres por seguridad
 
 try:
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
     Base = declarative_base()
-    print("DEBUG - Database connection successful")
+    print("✅ Database engine creado exitosamente")
 except Exception as e:
-    print(f"DEBUG - Database connection error: {e}")
+    print(f"❌ Error al crear engine de base de datos: {e}")
     raise
 
 # Función para obtener la sesión de la base de datos
