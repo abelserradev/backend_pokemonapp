@@ -25,10 +25,8 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     try:
-        print(f"Intentando login para: {form_data.username}")
         user = authenticate_user(form_data.username, form_data.password, db)
         if not user:
-            print("Usuario no encontrado o contraseña incorrecta")
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
         access_token_expires = timedelta(minutes=30)
@@ -37,14 +35,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             expires_delta=access_token_expires
         )
         
-        print(f"Login exitoso para: {user.email}")
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "user": {"id": user.id, "email": user.email}
         }
     except Exception as e:
-        print(f"Error en login: {str(e)}")
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
 @router.post("/token")

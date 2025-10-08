@@ -22,8 +22,6 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 def create_user(user_data: UserCreate, db: Session):
-    print(f"DEBUG - Email recibido: {user_data.email}")
-    
     # Verificar si el usuario ya existe
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -41,7 +39,6 @@ def create_user(user_data: UserCreate, db: Session):
     db.commit()
     db.refresh(db_user)
     
-    print(f"DEBUG - Usuario creado con ID: {db_user.id}")
     return {"message": "Usuario creado", "user": {"id": db_user.id, "email": db_user.email}}
 
 def get_password_hash(password: str):
