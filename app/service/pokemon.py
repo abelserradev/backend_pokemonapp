@@ -190,6 +190,7 @@ def add_favorite_pokemon(user_id: int, pokemon_data: FavoritePokemonCreate, db: 
 
 def get_user_favorites(user_id: int, limit: int = 5, db: Session = None):
     if db is None:
+        from app.database import get_db
         db = next(get_db())
     
     favorites = db.query(FavoritePokemon).filter(

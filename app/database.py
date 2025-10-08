@@ -1,6 +1,7 @@
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
+from app.models.database import Base
 import os
 from dotenv import load_dotenv
 
@@ -22,7 +23,6 @@ print(f"DEBUG - DATABASE_URL: {DATABASE_URL[:50]}...")  # Solo mostrar los prime
 try:
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-    Base = declarative_base()
     print("✅ Database engine creado exitosamente")
 except Exception as e:
     print(f"❌ Error al crear engine de base de datos: {e}")

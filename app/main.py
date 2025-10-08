@@ -1,4 +1,5 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy.orm import Session
 from app.routes import auth, pokemon
 from fastapi.middleware.cors import CORSMiddleware
 from app.database import get_db, engine, Base
@@ -41,7 +42,6 @@ def health_check(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
-
 
 # Para desarrollo local
 if __name__ == "__main__":

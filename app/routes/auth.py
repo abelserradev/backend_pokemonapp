@@ -8,7 +8,7 @@ from app.database import get_db
 from datetime import timedelta
 
 router = APIRouter()
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 @router.post("/register")
 async def register(user: UserCreate, db: Session = Depends(get_db)):
