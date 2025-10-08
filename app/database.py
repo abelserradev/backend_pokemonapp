@@ -14,22 +14,20 @@ for key, value in os.environ.items():
 
 print(f"🔍 DEBUG - Total de variables: {len(os.environ)}")
 
-# URL de conexión para Railway
-DATABASE_URL = os.getenv("DATABASE_URL")
+# URL de conexión para Railway - Usar MYSQL_DATABASE como prioridad
+DATABASE_URL = (
+    os.getenv("MYSQL_DATABASE") or 
+    os.getenv("DATABASE_URL") or 
+    os.getenv("MYSQL_URL") or 
+    os.getenv("MYSQL_DATABASE_URL")
+)
 
 if not DATABASE_URL:
-    print("❌ DATABASE_URL no encontrada en variables de entorno")
+    print("❌ No se encontró ninguna variable de base de datos")
     print("🔍 Variables disponibles:", list(os.environ.keys()))
-    print("🔍 Intentando usar variables alternativas...")
-    
-    # Intentar otras variables comunes de Railway
-    DATABASE_URL = os.getenv("MYSQL_URL") or os.getenv("DATABASE_URL") or os.getenv("MYSQL_DATABASE_URL")
-    
-    if not DATABASE_URL:
-        print("❌ No se encontró ninguna variable de base de datos")
-        raise ValueError("DATABASE_URL environment variable is not set")
-    else:
-        print(f"✅ Usando variable alternativa: {DATABASE_URL[:50]}...")
+    raise ValueError("DATABASE_URL environment variable is not set")
+else:
+    print(f"✅ Usando variable de base de datos: {DATABASE_URL[:50]}...")
 
 # Convertir mysql:// a mysql+pymysql:// automáticamente
 if DATABASE_URL.startswith("mysql://"):
