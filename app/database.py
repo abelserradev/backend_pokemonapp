@@ -24,6 +24,10 @@ DATABASE_URL = (
     os.getenv("MYSQL_DATABASE_URL")
 )
 
+# Limpiar espacios en blanco
+if DATABASE_URL:
+    DATABASE_URL = DATABASE_URL.strip()
+
 print(f"🔍 DEBUG - DATABASE_URL encontrada: {DATABASE_URL is not None}")
 if DATABASE_URL:
     print(f"🔍 DEBUG - Valor de DATABASE_URL: {DATABASE_URL[:50]}...")
