@@ -19,6 +19,7 @@ class User(Base):
     pokemon_team = relationship("UserPokemon", back_populates="user", cascade="all, delete-orphan")
     training_sessions = relationship("TrainingSession", back_populates="user", cascade="all, delete-orphan")
     favorite_pokemon = relationship("FavoritePokemon", back_populates="user", cascade="all, delete-orphan")
+    search_history = relationship("SearchHistory", back_populates="user", cascade="all, delete-orphan")
 
 class UserPokemon(Base):
     __tablename__ = "user_pokemon"
@@ -95,3 +96,19 @@ class UserToken(Base):
     token = Column(String(500), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+class SearchHistory(Base):
+    __tablename__ = "search_history"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    pokemon_id = Column(Integer, nullable=False)
+    pokemon_name = Column(String(100), nullable=False)
+    pokemon_sprite = Column(String(500))
+    pokemon_types = Column(JSON)
+    search_count = Column(Integer, default=1)
+    last_searched = Column(DateTime, server_default=func.now())
+    created_at = Column(DateTime, server_default=func.now())
+    
+    # Relación con usuario
+    user = relationship("User", back_populates="search_history")

@@ -80,3 +80,35 @@ class FavoritePokemonResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Modelos para Search History
+class SearchHistoryCreate(BaseModel):
+    pokemon_id: int
+    pokemon_name: str
+    pokemon_sprite: Optional[str] = None
+    pokemon_types: Optional[List[str]] = None
+
+class SearchHistoryResponse(BaseModel):
+    id: int
+    user_id: int
+    pokemon_id: int
+    pokemon_name: str
+    pokemon_sprite: Optional[str]
+    pokemon_types: Optional[List[str]]
+    search_count: int
+    last_searched: datetime
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class SmartFavoriteResponse(BaseModel):
+    pokemon_id: int
+    pokemon_name: str
+    pokemon_sprite: Optional[str]
+    pokemon_types: Optional[List[str]]
+    relevance_score: float
+    source: str  # "search_history", "global_popular", "team_usage"
+
+    class Config:
+        from_attributes = True
