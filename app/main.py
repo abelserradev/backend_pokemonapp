@@ -1,10 +1,13 @@
 from fastapi import FastAPI
 from app.routes import auth, pokemon
 from fastapi.middleware.cors import CORSMiddleware
+from app.database import get_db, engine, Base
 import os
 from dotenv import load_dotenv
 
 load_dotenv()
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -27,8 +30,18 @@ def home():
     return {"message": "¡Bienvenido al backend de Pokemon"}
 
 @app.get("/health")
-def health_check():
-    return {"status": "healthy"}
+def health_check(db: Session = Depends(get_db)):
+    try:
+        # Probar conexión a la BD
+        db.execute("SELECT 1")
+        return {
+            "status": "healthy",
+            "database": "connected",
+            "environment": os.getenv("RAILWAY_ENVIRONMENT", "development")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Database error: {str(e)}")
+
 
 # Para desarrollo local
 if __name__ == "__main__":

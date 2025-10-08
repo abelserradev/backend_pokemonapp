@@ -2,12 +2,17 @@ from sqlalchemy import create_engine, MetaData
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.ext.declarative import declarative_base
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # URL de conexión para Railway
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 if not DATABASE_URL:
-    raise ValueError("DATABASE_URL environment variable is not set")
+    print("⚠️  DATABASE_URL no encontrada. Usando configuración de desarrollo...")
+    # Configuración por defecto para desarrollo local
+    DATABASE_URL = "mysql+pymysql://root:tu_password@localhost:3306/pokemon"
 
 print(f"DEBUG - DATABASE_URL: {DATABASE_URL}")
 
