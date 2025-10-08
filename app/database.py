@@ -7,7 +7,8 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Debug: Mostrar TODAS las variables de entorno disponibles
+# Debug: Mostrar TODAS las variables de entorno disponibles ANTES de cualquier verificación
+print("🔍 DEBUG - INICIANDO VERIFICACIÓN DE VARIABLES...")
 print("🔍 DEBUG - TODAS las variables de entorno disponibles:")
 for key, value in os.environ.items():
     print(f"  {key}: {value}")
@@ -15,12 +16,17 @@ for key, value in os.environ.items():
 print(f"🔍 DEBUG - Total de variables: {len(os.environ)}")
 
 # URL de conexión para Railway - Usar MYSQL_DATABASE como prioridad
+print("🔍 DEBUG - Buscando variables de base de datos...")
 DATABASE_URL = (
     os.getenv("MYSQL_DATABASE") or 
     os.getenv("DATABASE_URL") or 
     os.getenv("MYSQL_URL") or 
     os.getenv("MYSQL_DATABASE_URL")
 )
+
+print(f"🔍 DEBUG - DATABASE_URL encontrada: {DATABASE_URL is not None}")
+if DATABASE_URL:
+    print(f"🔍 DEBUG - Valor de DATABASE_URL: {DATABASE_URL[:50]}...")
 
 if not DATABASE_URL:
     print("❌ No se encontró ninguna variable de base de datos")
