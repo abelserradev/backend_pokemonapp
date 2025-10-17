@@ -5,27 +5,31 @@ from app.models.pokemon import (
     UserPokemonCreate, UserPokemonResponse,
     TrainingSessionCreate, TrainingSessionUpdate, TrainingSessionResponse,
     FavoritePokemonCreate, FavoritePokemonResponse,
-    SearchHistoryCreate, SearchHistoryResponse, SmartFavoriteResponse
+    SearchHistoryCreate, SearchHistoryResponse, SmartFavoriteResponse,
+    PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse
 )
 from app.models.database import User
 from app.service.pokemon import (
     add_pokemon_to_team, get_user_team, remove_pokemon_from_team,
     create_training_session, update_training_session, get_user_training_sessions, delete_training_session,
     add_favorite_pokemon, get_user_favorites, increment_pokemon_usage, remove_favorite_pokemon,
-    track_pokemon_search, get_user_search_history, get_smart_favorites
+    track_pokemon_search, get_user_search_history, get_smart_favorites,
+    create_pokemon_team, get_user_teams, get_team_by_id, 
+    update_pokemon_team, delete_pokemon_team, toggle_favorite_team
 )
 from app.service.auth import get_current_user
 from app.database import get_db
 
 router = APIRouter()
 
-# ===== EQUIPO POKÉMON =====
+
 @router.post("/team", response_model=UserPokemonResponse)
 async def add_to_team(
     pokemon_data: UserPokemonCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+
     try:
         return add_pokemon_to_team(current_user.id, pokemon_data, db)
     except ValueError as e:
@@ -51,7 +55,6 @@ async def remove_from_team(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-# ===== SESIONES DE ENTRENAMIENTO =====
 @router.post("/training", response_model=TrainingSessionResponse)
 async def create_session(
     session_data: TrainingSessionCreate,
@@ -132,7 +135,6 @@ async def remove_from_favorites(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
-# ===== SMART FAVORITES & SEARCH TRACKING =====
 
 @router.get("/favorites/smart", response_model=List[SmartFavoriteResponse])
 async def get_smart_favorites_endpoint(
@@ -140,15 +142,6 @@ async def get_smart_favorites_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Obtener favoritos inteligentes basados en el comportamiento del usuario.
-    
-    Para usuarios nuevos: devuelve Pokémon populares globalmente.
-    Para usuarios existentes: devuelve favoritos personalizados basados en:
-    - Pokémon más buscados por el usuario
-    - Pokémon en su equipo
-    - Pokémon populares globalmente (como respaldo)
-    """
     try:
         return get_smart_favorites(current_user.id, limit, db)
     except Exception as e:
@@ -160,14 +153,7 @@ async def track_pokemon_search_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Registrar que un usuario buscó un Pokémon específico.
-    
-    Este endpoint debe ser llamado cada vez que un usuario:
-    - Busca un Pokémon en el componente de búsqueda
-    - Ve los detalles de un Pokémon
-    - Interactúa con un Pokémon de alguna manera
-    """
+
     try:
         return track_pokemon_search(current_user.id, search_data, db)
     except Exception as e:
@@ -179,17 +165,13 @@ async def get_user_search_history_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Obtener el historial de búsquedas del usuario.
-    
-    Útil para mostrar búsquedas recientes o estadísticas de uso.
-    """
+
     try:
         return get_user_search_history(current_user.id, limit, db)
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
 
-# ===== ENDPOINT LEGACY (mantener compatibilidad) =====
+
 
 @router.get("/favorites/legacy", response_model=List[FavoritePokemonResponse])
 async def get_favorites_legacy(
@@ -197,9 +179,94 @@ async def get_favorites_legacy(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """
-    Endpoint legacy para obtener favoritos manuales.
-    
-    Mantener para compatibilidad con código existente.
-    """
+
     return get_user_favorites(current_user.id, limit, db)
+
+@router.post("/teams", response_model=PokemonTeamResponse, status_code=status.HTTP_201_CREATED)
+async def create_team(
+    team_data: PokemonTeamCreate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Crear un nuevo equipo de Pokémon (1-6 miembros).
+    """
+    try:
+        return create_pokemon_team(current_user.id, team_data, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear equipo: {str(e)}")
+
+
+@router.get("/teams", response_model=List[PokemonTeamResponse])
+async def get_all_teams(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return get_user_teams(current_user.id, db)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener equipos: {str(e)}")
+
+
+@router.get("/teams/{team_id}", response_model=PokemonTeamResponse)
+async def get_team(
+    team_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return get_team_by_id(current_user.id, team_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al obtener equipo: {str(e)}")
+
+
+@router.put("/teams/{team_id}", response_model=PokemonTeamResponse)
+async def update_team(
+    team_id: int,
+    update_data: PokemonTeamUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return update_pokemon_team(current_user.id, team_id, update_data, db)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar equipo: {str(e)}")
+
+
+@router.delete("/teams/{team_id}")
+async def delete_team(
+    team_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return delete_pokemon_team(current_user.id, team_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al eliminar equipo: {str(e)}")
+
+
+@router.patch("/teams/{team_id}/favorite", response_model=PokemonTeamResponse)
+async def toggle_team_favorite(
+    team_id: int,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+
+    try:
+        return toggle_favorite_team(current_user.id, team_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al actualizar favorito: {str(e)}")

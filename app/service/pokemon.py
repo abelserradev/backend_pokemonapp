@@ -8,6 +8,11 @@ from app.models.pokemon import (
 from datetime import datetime, timedelta
 from fastapi import HTTPException
 from typing import List, Dict, Any
+from app.models.database import PokemonTeam, PokemonTeamMember
+from app.models.pokemon import (
+    PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
+    PokemonTeamMemberResponse
+)
 
 # ===== USER POKEMON =====
 def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Session):
@@ -524,3 +529,174 @@ def get_smart_favorites(user_id: int, limit: int = 5, db: Session = None) -> Lis
     else:
         # Usuario existente: devolver favoritos basados en su comportamiento
         return get_user_based_favorites(user_id, limit, db)
+
+def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session) -> PokemonTeamResponse:
+    """
+    Crear un nuevo equipo de Pokémon para un usuario.
+    Validación: 1-6 Pokémon por equipo.
+    """
+    # Validar cantidad de Pokémon
+    if len(team_data.team_members) < 1 or len(team_data.team_members) > 6:
+        raise ValueError("Un equipo debe tener entre 1 y 6 Pokémon")
+    
+    # Validar posiciones únicas
+    positions = [member.position for member in team_data.team_members]
+    if len(positions) != len(set(positions)):
+        raise ValueError("Las posiciones de los Pokémon deben ser únicas")
+    
+    # Validar rango de posiciones (1-6)
+    if any(pos < 1 or pos > 6 for pos in positions):
+        raise ValueError("Las posiciones deben estar entre 1 y 6")
+    
+    try:
+        # Crear equipo
+        new_team = PokemonTeam(
+            user_id=user_id,
+            team_name=team_data.team_name,
+            description=team_data.description,
+            is_favorite=team_data.is_favorite
+        )
+        db.add(new_team)
+        db.flush()  # Para obtener el ID del equipo
+        
+        # Agregar miembros del equipo
+        for member_data in team_data.team_members:
+            team_member = PokemonTeamMember(
+                team_id=new_team.id,
+                pokemon_id=member_data.pokemon_id,
+                pokemon_name=member_data.pokemon_name,
+                pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_types=member_data.pokemon_types,
+                nickname=member_data.nickname,
+                level=member_data.level,
+                selected_ability=member_data.selected_ability,
+                position=member_data.position,
+                move_1=member_data.move_1,
+                move_2=member_data.move_2,
+                move_3=member_data.move_3,
+                move_4=member_data.move_4,
+                held_item=member_data.held_item,
+                nature=member_data.nature,
+                evs=member_data.evs,
+                ivs=member_data.ivs
+            )
+            db.add(team_member)
+        
+        db.commit()
+        db.refresh(new_team)
+        return new_team
+        
+    except Exception as e:
+        db.rollback()
+        raise
+
+
+def get_user_teams(user_id: int, db: Session) -> List[PokemonTeamResponse]:
+
+    teams = db.query(PokemonTeam).filter(PokemonTeam.user_id == user_id).order_by(
+        PokemonTeam.is_favorite.desc(), 
+        PokemonTeam.created_at.desc()
+    ).all()
+    return teams
+
+
+def get_team_by_id(user_id: int, team_id: int, db: Session) -> PokemonTeamResponse:
+
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id
+    ).first()
+    
+    if not team:
+        raise ValueError("Equipo no encontrado")
+    
+    return team
+
+
+def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpdate, db: Session) -> PokemonTeamResponse:
+
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id
+    ).first()
+    
+    if not team:
+        raise ValueError("Equipo no encontrado")
+    
+    # Actualizar campos básicos
+    if update_data.team_name is not None:
+        team.team_name = update_data.team_name
+    if update_data.description is not None:
+        team.description = update_data.description
+    if update_data.is_favorite is not None:
+        team.is_favorite = update_data.is_favorite
+    
+    # Actualizar miembros si se proporcionan
+    if update_data.team_members is not None:
+        # Validar cantidad
+        if len(update_data.team_members) < 1 or len(update_data.team_members) > 6:
+            raise ValueError("Un equipo debe tener entre 1 y 6 Pokémon")
+        
+        # Eliminar miembros existentes
+        db.query(PokemonTeamMember).filter(PokemonTeamMember.team_id == team_id).delete()
+        
+        # Agregar nuevos miembros
+        for member_data in update_data.team_members:
+            team_member = PokemonTeamMember(
+                team_id=team.id,
+                pokemon_id=member_data.pokemon_id,
+                pokemon_name=member_data.pokemon_name,
+                pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_types=member_data.pokemon_types,
+                nickname=member_data.nickname,
+                level=member_data.level,
+                selected_ability=member_data.selected_ability,
+                position=member_data.position,
+                move_1=member_data.move_1,
+                move_2=member_data.move_2,
+                move_3=member_data.move_3,
+                move_4=member_data.move_4,
+                held_item=member_data.held_item,
+                nature=member_data.nature,
+                evs=member_data.evs,
+                ivs=member_data.ivs
+            )
+            db.add(team_member)
+    
+    db.commit()
+    db.refresh(team)
+    return team
+
+
+def delete_pokemon_team(user_id: int, team_id: int, db: Session) -> dict:
+
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id
+    ).first()
+    
+    if not team:
+        raise ValueError("Equipo no encontrado")
+    
+    team_name = team.team_name
+    db.delete(team)
+    db.commit()
+    
+    return {"message": f"Equipo '{team_name}' eliminado exitosamente"}
+
+
+def toggle_favorite_team(user_id: int, team_id: int, db: Session) -> PokemonTeamResponse:
+
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id
+    ).first()
+    
+    if not team:
+        raise ValueError("Equipo no encontrado")
+    
+    team.is_favorite = not team.is_favorite
+    db.commit()
+    db.refresh(team)
+    
+    return team
