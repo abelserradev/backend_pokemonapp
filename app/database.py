@@ -30,7 +30,6 @@ try:
     engine = create_engine(DATABASE_URL)
     SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 except Exception as e:
-    print(f"❌ Error al crear engine de base de datos: {e}")
     raise
 
 # Función para obtener la sesión de la base de datos

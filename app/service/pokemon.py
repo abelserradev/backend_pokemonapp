@@ -45,7 +45,6 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
     
     # IMPORTANTE: Crear sesión CON todos los datos
     if pokemon_data.base_stats:
-        print(f"DEBUG - Creando sesión con sprite: {pokemon_data.pokemon_sprite}")
         create_training_session_for_pokemon_with_details(
             user_id=user_id,
             pokemon_id=pokemon_data.pokemon_id,
@@ -66,8 +65,8 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
             pokemon_types=pokemon_data.pokemon_types
         )
         track_pokemon_search(user_id, search_data, db)
-    except Exception as e:
-        print(f"DEBUG - Error al registrar búsqueda: {e}")
+    except Exception:
+        pass
     
     return db_pokemon
 
@@ -75,19 +74,12 @@ def get_user_team(user_id: int, db: Session):
     return db.query(UserPokemon).filter(UserPokemon.user_id == user_id).all()
 
 def remove_pokemon_from_team(user_id: int, pokemon_id: int, db: Session):
-    print(f"DEBUG - Intentando eliminar: user_id={user_id}, pokemon_id={pokemon_id}")
-    
     pokemon = db.query(UserPokemon).filter(
         UserPokemon.id == pokemon_id,
         UserPokemon.user_id == user_id
     ).first()
     
-    print(f"DEBUG - Pokémon encontrado: {pokemon}")
-    
     if not pokemon:
-        # Ver qué pokémon tiene el usuario
-        all_pokemon = db.query(UserPokemon).filter(UserPokemon.user_id == user_id).all()
-        print(f"DEBUG - Pokémon del usuario: {[(p.id, p.pokemon_name) for p in all_pokemon]}")
         raise ValueError("Pokémon no encontrado")
     
     db.delete(pokemon)
@@ -202,7 +194,6 @@ def get_user_favorites(user_id: int, limit: int = 5, db: Session = None):
         FavoritePokemon.last_used.desc()     # Luego por más recientes
     ).limit(limit).all()
     
-    print(f"DEBUG - Favoritos encontrados para user {user_id}: {len(favorites)}")
     return favorites
 
 def increment_pokemon_usage(user_id: int, pokemon_id: int, db: Session):
@@ -242,11 +233,6 @@ def create_training_session_for_pokemon_with_details(
     base_stats: dict = None,
     db: Session = None
 ):
-    print(f"DEBUG - Creando sesión de entrenamiento:")
-    print(f"  - pokemon_sprite: {pokemon_sprite}")
-    print(f"  - pokemon_types: {pokemon_types}")
-    print(f"  - base_stats: {base_stats}")
-    
     # Verificar si ya existe
     existing = db.query(TrainingSession).filter(
         TrainingSession.user_id == user_id,
@@ -254,12 +240,10 @@ def create_training_session_for_pokemon_with_details(
     ).first()
     
     if existing:
-        print(f"DEBUG - Ya existe sesión para pokemon_id={pokemon_id}")
         return existing
     
     # VALIDAR que base_stats no esté vacío
     if not base_stats or len(base_stats) == 0:
-        print("WARNING - base_stats está vacío, usando valores por defecto")
         base_stats = {
             "hp": 45,
             "attack": 49,
@@ -305,7 +289,6 @@ def create_training_session_for_pokemon_with_details(
     db.commit()
     db.refresh(db_session)
     
-    print(f"DEBUG - Sesión creada exitosamente con ID: {db_session.id}")
     return db_session
 
 # ===== SEARCH HISTORY & SMART FAVORITES =====

@@ -51,21 +51,11 @@ def get_user_by_email(email: str, db: Session):
     return db.query(User).filter(User.email == email).first()
 
 def authenticate_user(email: str, password: str, db: Session):
-    print(f"🔍 Intentando autenticar usuario: {email}")
-    
     user = get_user_by_email(email, db)
     if not user:
-        print(f"❌ Usuario no encontrado en BD: {email}")
         return False
-    
-    print(f"✅ Usuario encontrado: {user.email} (ID: {user.id})")
-    
-    is_password_valid = verify_password(password, user.hashed_password)
-    if not is_password_valid:
-        print(f"❌ Contraseña incorrecta para: {email}")
+    if not verify_password(password, user.hashed_password):
         return False
-    
-    print(f"✅ Autenticación exitosa: {email}")
     return user
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

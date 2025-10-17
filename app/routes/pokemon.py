@@ -106,17 +106,7 @@ async def get_team(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    team_pokemon = get_user_team(current_user.id, db)
-    
-    print("=" * 50)
-    print("DEBUG: GET /api/pokemon/team")
-    print(f"Usuario: {current_user.id}")
-    print(f"Pokémon encontrados: {len(team_pokemon)}")
-    for p in team_pokemon:
-        print(f"  - {p.pokemon_name} (ID DB: {p.id}, Pokemon ID: {p.pokemon_id})")
-    print("=" * 50)
-    
-    return team_pokemon
+    return get_user_team(current_user.id, db)
 
 @router.delete("/team/{team_pokemon_id}")
 async def remove_from_team(
@@ -142,17 +132,7 @@ async def get_sessions(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    sessions = get_user_training_sessions(current_user.id, db)
-    
-    print("=" * 50)
-    print("DEBUG: GET /api/pokemon/training")
-    print(f"Usuario: {current_user.id}")
-    print(f"Sesiones encontradas: {len(sessions)}")
-    for s in sessions:
-        print(f"  - Sesión {s.id} - {s.pokemon_name} (Pokemon ID: {s.pokemon_id}, EVs: {s.current_evs})")
-    print("=" * 50)
-    
-    return sessions
+    return get_user_training_sessions(current_user.id, db)
 
 @router.put("/training/{session_id}", response_model=TrainingSessionResponse)
 async def update_session(
@@ -401,12 +381,6 @@ async def load_team_for_training(
         db.query(TrainingSession).filter(TrainingSession.user_id == current_user.id).delete()
         db.commit()
         
-        print("=" * 50)
-        print("DEBUG: Limpieza completada")
-        print(f"Usuario: {current_user.id}")
-        print(f"Equipo a cargar: {team.team_name} (ID: {team.id})")
-        print("=" * 50)
-        
         # 3. Cargar Pokémon del equipo guardado al equipo actual (user_pokemon)
         team_loaded = []
         for member in team.team_members:
@@ -421,11 +395,8 @@ async def load_team_for_training(
             db.add(team_pokemon)
             db.flush()
             team_loaded.append(team_pokemon)
-            print(f"DEBUG: Pokémon agregado a user_pokemon - {member.pokemon_name} (ID: {member.pokemon_id})")
         
         db.commit()
-        
-        print(f"DEBUG: {len(team_loaded)} Pokémon cargados a user_pokemon")
         
         # 4. Crear sesiones de training para cada Pokémon
         sessions_created = []
@@ -502,17 +473,6 @@ async def load_team_for_training(
         
         # Verificación final
         loaded_team = db.query(UserPokemon).filter(UserPokemon.user_id == current_user.id).all()
-        loaded_sessions = db.query(TrainingSession).filter(TrainingSession.user_id == current_user.id).all()
-        
-        print("=" * 50)
-        print("DEBUG: Verificación final")
-        print(f"Pokémon en user_pokemon: {len(loaded_team)}")
-        for p in loaded_team:
-            print(f"  - {p.pokemon_name} (ID DB: {p.id}, Pokemon ID: {p.pokemon_id})")
-        print(f"Sesiones de training: {len(loaded_sessions)}")
-        for s in loaded_sessions:
-            print(f"  - Sesión {s.id} - {s.pokemon_name} (Pokemon ID: {s.pokemon_id})")
-        print("=" * 50)
         
         return {
             "message": f"Equipo '{team.team_name}' cargado exitosamente para entrenamiento",
@@ -681,8 +641,6 @@ async def update_team_member_nickname(
         db.commit()
         db.refresh(member)
         
-        print(f"DEBUG: Nickname actualizado - Pokémon {member.pokemon_name}, Nuevo nickname: {validated_nickname}")
-        
         return member
         
     except HTTPException:
@@ -744,8 +702,6 @@ async def update_team_member_level(
         
         db.commit()
         db.refresh(member)
-        
-        print(f"DEBUG: Nivel actualizado - Pokémon {member.pokemon_name}, Nuevo nivel: {request.level}")
         
         return member
         
