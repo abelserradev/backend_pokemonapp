@@ -52,9 +52,13 @@ async def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
     """
     Endpoint de login que acepta JSON (para aplicaciones SPA como Angular).
     """
+    # Log temporal para debug
+    print(f"🔵 LOGIN JSON - Email: {credentials.email}, Password length: {len(credentials.password)}")
+    
     try:
         user = authenticate_user(credentials.email, credentials.password, db)
         if not user:
+            print(f"❌ Login fallido para: {credentials.email}")
             raise HTTPException(
                 status_code=401, 
                 detail="Credenciales incorrectas"
@@ -66,6 +70,8 @@ async def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
             expires_delta=access_token_expires
         )
         
+        print(f"✅ Login exitoso: {user.email}")
+        
         return {
             "access_token": access_token,
             "token_type": "bearer",
@@ -74,6 +80,7 @@ async def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
     except HTTPException:
         raise
     except Exception as e:
+        print(f"❌ Exception: {type(e).__name__}: {str(e)}")
         raise HTTPException(
             status_code=401, 
             detail="Credenciales incorrectas"

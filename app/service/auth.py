@@ -51,10 +51,17 @@ def get_user_by_email(email: str, db: Session):
     return db.query(User).filter(User.email == email).first()
 
 def authenticate_user(email: str, password: str, db: Session):
+    print(f"🔍 Autenticando: {email}")
     user = get_user_by_email(email, db)
     if not user:
+        print(f"❌ Usuario no existe: {email}")
         return False
-    if not verify_password(password, user.hashed_password):
+    
+    print(f"✅ Usuario encontrado: {user.email}")
+    is_valid = verify_password(password, user.hashed_password)
+    print(f"🔑 Password válida: {is_valid}")
+    
+    if not is_valid:
         return False
     return user
 
