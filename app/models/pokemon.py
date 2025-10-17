@@ -224,11 +224,11 @@ class PokemonTeamResponse(BaseModel):
 
 # Modelos para actualización de miembros de equipo
 class UpdateNicknameRequest(BaseModel):
-    nickname: Optional[str] = None
+    nickname: Optional[str] = Field(None, max_length=20, description="Nickname del Pokémon (máx 20 caracteres)")
 
 class UpdateLevelRequest(BaseModel):
     level: int = Field(..., ge=1, le=100, description="Nivel del Pokémon (1-100)")
-    
+
     @field_validator('level')
     def validate_level(cls, v):
         if v < 1 or v > 100:

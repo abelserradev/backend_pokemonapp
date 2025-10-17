@@ -9,6 +9,7 @@ from app.models.pokemon import (
     PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
     PokemonTeamMemberResponse, UpdateNicknameRequest, UpdateLevelRequest
 )
+from app.utils.validators import validate_nickname
 from app.models.database import User, UserPokemon, TrainingSession, PokemonTeam, PokemonTeamMember
 from app.service.pokemon import (
     add_pokemon_to_team, get_user_team, remove_pokemon_from_team,
