@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional, List, Dict
 from datetime import datetime
 
@@ -179,3 +179,16 @@ class PokemonTeamResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+# Modelos para actualización de miembros de equipo
+class UpdateNicknameRequest(BaseModel):
+    nickname: Optional[str] = None
+
+class UpdateLevelRequest(BaseModel):
+    level: int = Field(..., ge=1, le=100, description="Nivel del Pokémon (1-100)")
+    
+    @field_validator('level')
+    def validate_level(cls, v):
+        if v < 1 or v > 100:
+            raise ValueError('El nivel debe estar entre 1 y 100')
+        return v

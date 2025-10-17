@@ -19,6 +19,7 @@ email-validator==2.1.0
 
 # HTTP & Forms
 python-multipart==0.0.20
+requests==2.31.0
 
 # Environment & Configuration
 python-dotenv==1.1.1

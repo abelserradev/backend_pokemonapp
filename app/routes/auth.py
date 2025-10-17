@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from app.models.user import UserCreate
+from app.models.user import UserCreate, UserLogin
 from app.models.database import User
 from app.service.auth import create_user, authenticate_user, create_access_token, get_current_user
 from app.database import get_db
@@ -24,6 +24,9 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 
 @router.post("/login")
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    """
+    Endpoint de login con OAuth2PasswordRequestForm (espera form-data).
+    """
     try:
         user = authenticate_user(form_data.username, form_data.password, db)
         if not user:
@@ -41,7 +44,44 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             "user": {"id": user.id, "email": user.email}
         }
     except Exception as e:
+        print(f"Error en login (form-data): {str(e)}")
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+
+@router.post("/login/json")
+async def login_json(credentials: UserLogin, db: Session = Depends(get_db)):
+    """
+    Endpoint de login que acepta JSON (para aplicaciones SPA como Angular).
+    """
+    try:
+        user = authenticate_user(credentials.email, credentials.password, db)
+        if not user:
+            print(f"Usuario no encontrado o contraseña incorrecta: {credentials.email}")
+            raise HTTPException(
+                status_code=401, 
+                detail="Credenciales incorrectas"
+            )
+        
+        access_token_expires = timedelta(minutes=30)
+        access_token = create_access_token(
+            data={"sub": user.email}, 
+            expires_delta=access_token_expires
+        )
+        
+        print(f"Login exitoso para usuario: {user.email}")
+        
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "user": {"id": user.id, "email": user.email}
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"Error en login JSON: {str(e)}")
+        raise HTTPException(
+            status_code=401, 
+            detail="Credenciales incorrectas"
+        )
 
 @router.post("/token")
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
