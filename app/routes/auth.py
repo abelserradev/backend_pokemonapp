@@ -26,10 +26,20 @@ async def register(user: UserCreate, db: Session = Depends(get_db)):
 async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     """
     Endpoint de login con OAuth2PasswordRequestForm (espera form-data).
+    NOTA: El frontend Angular debe usar /api/login/json en su lugar.
     """
+    print("=" * 70)
+    print("🔵 POST /api/login (OAuth2 form-data)")
+    print(f"📧 Username (email): {form_data.username}")
+    print(f"🔑 Password length: {len(form_data.password)}")
+    print("⚠️  ADVERTENCIA: Este endpoint espera form-data, no JSON")
+    print("💡 El frontend Angular debe usar /api/login/json")
+    print("=" * 70)
+    
     try:
         user = authenticate_user(form_data.username, form_data.password, db)
         if not user:
+            print("❌ authenticate_user devolvió False")
             raise HTTPException(status_code=401, detail="Credenciales incorrectas")
         
         access_token_expires = timedelta(minutes=30)
@@ -38,13 +48,20 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
             expires_delta=access_token_expires
         )
         
+        print(f"✅ Login exitoso - Token generado para: {user.email}")
+        
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "user": {"id": user.id, "email": user.email}
         }
+    except HTTPException as he:
+        print(f"❌ HTTPException capturada: {he.detail}")
+        raise
     except Exception as e:
-        print(f"Error en login (form-data): {str(e)}")
+        print(f"❌ Error inesperado en login (form-data): {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=401, detail="Credenciales incorrectas")
 
 @router.post("/login/json")
