@@ -23,9 +23,23 @@ class UserPokemonResponse(BaseModel):
     nickname: Optional[str]
     level: int
     added_at: datetime
+    
+    # Estructura compatible con frontend
+    sprites: Optional[Dict[str, str]] = None
 
     class Config:
         from_attributes = True
+        
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Crear estructura sprites si pokemon_sprite existe
+        if self.pokemon_sprite:
+            self.sprites = {
+                "front_default": self.pokemon_sprite,
+                "back_default": self.pokemon_sprite,
+                "front_shiny": self.pokemon_sprite,
+                "back_shiny": self.pokemon_sprite
+            }
 
 # Modelos para Training Sessions
 class TrainingSessionCreate(BaseModel):
@@ -56,9 +70,23 @@ class TrainingSessionResponse(BaseModel):
     is_completed: bool
     created_at: datetime
     updated_at: Optional[datetime]
+    
+    # Estructura compatible con frontend
+    sprites: Optional[Dict[str, str]] = None
 
     class Config:
         from_attributes = True
+        
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Crear estructura sprites si pokemon_sprite existe
+        if self.pokemon_sprite:
+            self.sprites = {
+                "front_default": self.pokemon_sprite,
+                "back_default": self.pokemon_sprite,
+                "front_shiny": self.pokemon_sprite,
+                "back_shiny": self.pokemon_sprite
+            }
 
 # Modelos para Favorite Pokemon
 class FavoritePokemonCreate(BaseModel):
@@ -151,9 +179,23 @@ class PokemonTeamMemberResponse(BaseModel):
     evs: Optional[Dict[str, int]]
     ivs: Optional[Dict[str, int]]
     added_at: datetime
+    
+    # Estructura compatible con frontend
+    sprites: Optional[Dict[str, str]] = None
 
     class Config:
         from_attributes = True
+        
+    def __init__(self, **data):
+        super().__init__(**data)
+        # Crear estructura sprites si pokemon_sprite existe
+        if self.pokemon_sprite:
+            self.sprites = {
+                "front_default": self.pokemon_sprite,
+                "back_default": self.pokemon_sprite,
+                "front_shiny": self.pokemon_sprite,
+                "back_shiny": self.pokemon_sprite
+            }
 
 class PokemonTeamCreate(BaseModel):
     team_name: str
