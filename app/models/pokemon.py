@@ -234,3 +234,24 @@ class UpdateLevelRequest(BaseModel):
         if v < 1 or v > 100:
             raise ValueError('El nivel debe estar entre 1 y 100')
         return v
+
+class UpdateMovesRequest(BaseModel):
+    move_1: Optional[str] = Field(None, max_length=30, description="Movimiento 1 (máx 30 caracteres)")
+    move_2: Optional[str] = Field(None, max_length=30, description="Movimiento 2 (máx 30 caracteres)")
+    move_3: Optional[str] = Field(None, max_length=30, description="Movimiento 3 (máx 30 caracteres)")
+    move_4: Optional[str] = Field(None, max_length=30, description="Movimiento 4 (máx 30 caracteres)")
+
+    @field_validator('move_1', 'move_2', 'move_3', 'move_4')
+    def validate_move_name(cls, v):
+        if v is not None and len(v.strip()) > 0:
+            # Validar longitud máxima
+            if len(v) > 30:
+                raise ValueError('El nombre del movimiento no puede exceder 30 caracteres')
+            
+            # Permitir letras, números, espacios y caracteres especiales básicos
+            import re
+            if not re.match(r"^[a-zA-Z0-9\sñÑáéíóúÁÉÍÓÚüÜ\-_'\.!?]+$", v):
+                raise ValueError('El movimiento contiene caracteres no permitidos')
+        
+        # Convertir cadenas vacías a None
+        return v.strip() if v and len(v.strip()) > 0 else None

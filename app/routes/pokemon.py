@@ -7,7 +7,8 @@ from app.models.pokemon import (
     FavoritePokemonCreate, FavoritePokemonResponse,
     SearchHistoryCreate, SearchHistoryResponse, SmartFavoriteResponse,
     PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
-    PokemonTeamMemberResponse, UpdateNicknameRequest, UpdateLevelRequest
+    PokemonTeamMemberResponse, UpdateNicknameRequest, UpdateLevelRequest,
+    UpdateMovesRequest
 )
 from app.utils.validators import validate_nickname
 from app.models.database import User, UserPokemon, TrainingSession, PokemonTeam, PokemonTeamMember
@@ -715,3 +716,70 @@ async def update_team_member_level(
             detail=f"Error al actualizar nivel: {str(e)}"
         )
 
+@router.patch("/teams/{team_id}/members/{member_id}/moves", response_model=PokemonTeamMemberResponse)
+async def update_team_member_moves(
+    team_id: int,
+    member_id: int,
+    request: UpdateMovesRequest,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Verificar que el equipo pertenece al usuario
+        team = db.query(PokemonTeam).filter(
+            PokemonTeam.id == team_id,
+            PokemonTeam.user_id == current_user.id
+        ).first()
+        
+        if not team:
+            raise HTTPException(
+                status_code=404, 
+                detail="Equipo no encontrado"
+            )
+        
+        # Buscar el miembro del equipo
+        member = db.query(PokemonTeamMember).filter(
+            PokemonTeamMember.id == member_id,
+            PokemonTeamMember.team_id == team_id
+        ).first()
+        
+        if not member:
+            raise HTTPException(
+                status_code=404, 
+                detail="Miembro del equipo no encontrado"
+            )
+        
+        # Actualizar solo los movimientos que se enviaron en el request
+        # Si el campo no se envió (None), no se modifica
+        if request.move_1 is not None:
+            member.move_1 = request.move_1
+        if request.move_2 is not None:
+            member.move_2 = request.move_2
+        if request.move_3 is not None:
+            member.move_3 = request.move_3
+        if request.move_4 is not None:
+            member.move_4 = request.move_4
+        
+        # Actualizar timestamp del equipo
+        from datetime import datetime
+        team.updated_at = datetime.utcnow()
+        
+        db.commit()
+        db.refresh(member)
+        
+        return member
+        
+    except HTTPException:
+        raise
+    except ValueError as e:
+        # Errores de validación de Pydantic
+        raise HTTPException(
+            status_code=422,
+            detail=str(e)
+        )
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al actualizar movimientos: {str(e)}"
+        )
