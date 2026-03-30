@@ -23,7 +23,7 @@ def main():
             sys.executable, "-m", "uvicorn", 
             "app.main:app", 
             "--host", "0.0.0.0", 
-            "--port", os.getenv("PORT", "8000")
+            "--port", os.getenv("PORT", "3000")
         ])
     except KeyboardInterrupt:
         print("\n👋 Servidor detenido")

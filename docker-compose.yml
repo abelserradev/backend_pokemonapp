@@ -1,27 +1,16 @@
-# Producción: API FastAPI. MySQL es externo (p. ej. Coolify).
-#
-# Variables obligatorias para el contenedor: DATABASE_URL, SECRET_KEY, ALLOWED_ORIGINS, PORT.
-#
-# Local: copia .env.production.example a .env (Compose lee .env para sustituir ${...})
-#   cp .env.production.example .env
-#   docker compose up -d --build
-#
-# Coolify: define las mismas variables en el recurso; si usas este compose, asegúrate
-# de que el despliegue inyecte DATABASE_URL, SECRET_KEY, ALLOWED_ORIGINS y PORT.
-
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
     image: pokemon-backend-api:prod
-    container_name: pokemon-backend-api
     restart: unless-stopped
-    ports:
-      - "${PORT:-8000}:${PORT:-8000}"
     environment:
       ENVIRONMENT: production
-      PORT: ${PORT:-8000}
+      PORT: ${PORT:-3000}
       DATABASE_URL: ${DATABASE_URL}
       SECRET_KEY: ${SECRET_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    # Solo para pruebas locales cuando necesitas abrir puerto en la máquina:
+    # ports:
+    #   - "3000:3000"

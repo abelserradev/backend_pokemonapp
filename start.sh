@@ -1,7 +1,6 @@
 #!/bin/bash
 
-# Obtener el puerto de Railway o usar 8000 por defecto
-PORT=${PORT:-8000}
+PORT=${PORT:-3000}
 
 echo "🚀 Starting API on port: $PORT"
 echo "🌐 ENVIRONMENT: ${ENVIRONMENT:-production}"

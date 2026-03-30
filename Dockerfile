@@ -21,7 +21,7 @@ COPY . .
 # Hacer el script ejecutable
 RUN chmod +x start.sh
 
-# Puerto por defecto; en runtime PORT viene de env (Coolify, compose, etc.)
-EXPOSE 8000
+# Uvicorn usa PORT del entorno (Coolify suele 3000)
+EXPOSE 3000
 
 CMD ["./start.sh"]
