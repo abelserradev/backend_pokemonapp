@@ -8,11 +8,16 @@ from dotenv import load_dotenv
 # Cargar variables de entorno según el entorno
 environment = os.getenv("ENVIRONMENT", "development")
 
-# En Railway, siempre usar variables de entorno del sistema
-if os.getenv("RAILWAY_ENVIRONMENT") or os.getenv("PORT"):
-    # Estamos en Railway - usar variables de entorno del sistema
+# Producción: contenedor Docker, Railway, Coolify, etc. (sin .env.local)
+if (
+    environment == "production"
+    or os.getenv("RAILWAY_ENVIRONMENT")
+    or os.getenv("DOCKER_CONTAINER")
+    or os.getenv("PORT")
+):
+    # PORT: compatibilidad con despliegues que solo inyectan PORT (p. ej. PaaS)
     environment = "production"
-    print("🚂 Detectado Railway - usando variables de entorno del sistema")
+    print("☁️ Producción: variables desde el sistema / contenedor")
 elif environment == "development":
     # Desarrollo local - cargar desde .env.local
     load_dotenv(".env.local")

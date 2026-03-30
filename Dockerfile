@@ -4,6 +4,10 @@ FROM python:3.11-slim
 # Establecer el directorio de trabajo
 WORKDIR /app
 
+# database.py usa esto para no cargar .env.local dentro del contenedor
+ENV DOCKER_CONTAINER=1
+ENV ENVIRONMENT=production
+
 # Copiar archivos de dependencias
 COPY requirements.txt .
 
@@ -17,8 +21,7 @@ COPY . .
 # Hacer el script ejecutable
 RUN chmod +x start.sh
 
-# Exponer el puerto (Railway lo asigna dinámicamente)
-EXPOSE $PORT
+# Puerto por defecto; en runtime PORT viene de env (Coolify, compose, etc.)
+EXPOSE 8000
 
-# Comando de inicio usando el script
 CMD ["./start.sh"]

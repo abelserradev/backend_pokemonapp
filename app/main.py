@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Depends, HTTPException
+from sqlalchemy import text
 from sqlalchemy.orm import Session
 from app.routes import auth, pokemon
 from fastapi.middleware.cors import CORSMiddleware
@@ -13,7 +14,11 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI()
 
 # Obtener los orígenes permitidos desde variable de entorno
-allowed_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:4200").split(",")
+allowed_origins = [
+    o.strip()
+    for o in os.getenv("ALLOWED_ORIGINS", "http://localhost:4200").split(",")
+    if o.strip()
+]
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,7 +39,7 @@ def home():
 def health_check(db: Session = Depends(get_db)):
     try:
         # Probar conexión a la BD
-        db.execute("SELECT 1")
+        db.execute(text("SELECT 1"))
         return {
             "status": "healthy",
             "database": "connected",
