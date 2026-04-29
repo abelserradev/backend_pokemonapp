@@ -11,6 +11,9 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       SECRET_KEY: ${SECRET_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-    # Solo para pruebas locales cuando necesitas abrir puerto en la máquina:
-    # ports:
-    #   - "3000:3000"
+      networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true
