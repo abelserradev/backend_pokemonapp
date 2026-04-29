@@ -11,7 +11,7 @@ services:
       DATABASE_URL: ${DATABASE_URL}
       SECRET_KEY: ${SECRET_KEY}
       ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
-      networks:
+    networks:
       - coolify
 
 networks:
