@@ -1,11 +1,12 @@
+import logging
+
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from app.models.database import UserPokemon, TrainingSession, FavoritePokemon, SearchHistory
 from app.models.pokemon import (
-    UserPokemonCreate, TrainingSessionCreate, TrainingSessionUpdate, 
+    UserPokemonCreate, TrainingSessionCreate, TrainingSessionUpdate,
     FavoritePokemonCreate, SearchHistoryCreate, SmartFavoriteResponse
 )
-from datetime import datetime, timedelta
 from fastapi import HTTPException
 from typing import List, Dict, Any
 from app.models.database import PokemonTeam, PokemonTeamMember
@@ -13,6 +14,9 @@ from app.models.pokemon import (
     PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
     PokemonTeamMemberResponse
 )
+from app.utils.dates import utc_now
+
+logger = logging.getLogger("pokemon-api.pokemon")
 
 # ===== USER POKEMON =====
 def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Session):
@@ -66,7 +70,9 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
         )
         track_pokemon_search(user_id, search_data, db)
     except Exception:
-        pass
+        # El tracking de búsqueda es secundario: no debe romper el alta del pokémon,
+        # pero el error sí debe quedar registrado para detectar un fallo sistémico.
+        logger.warning("No se pudo registrar la búsqueda (user_id=%s)", user_id, exc_info=True)
     
     return db_pokemon
 
@@ -135,7 +141,7 @@ def update_training_session(user_id: int, session_id: int, update_data: Training
     session.is_completed = update_data.is_completed
     
     if update_data.is_completed:
-        session.completed_at = datetime.utcnow()
+        session.completed_at = utc_now()
     
     db.commit()
     db.refresh(session)
@@ -204,7 +210,7 @@ def increment_pokemon_usage(user_id: int, pokemon_id: int, db: Session):
     
     if favorite:
         favorite.usage_count += 1
-        favorite.last_used = datetime.utcnow()
+        favorite.last_used = utc_now()
         db.commit()
         db.refresh(favorite)
         return favorite
@@ -314,7 +320,7 @@ def track_pokemon_search(user_id: int, search_data: SearchHistoryCreate, db: Ses
     if existing_search:
         # Actualizar contador y timestamp
         existing_search.search_count += 1
-        existing_search.last_searched = datetime.utcnow()
+        existing_search.last_searched = utc_now()
         # Actualizar datos del Pokémon por si han cambiado
         existing_search.pokemon_sprite = search_data.pokemon_sprite
         existing_search.pokemon_types = search_data.pokemon_types
@@ -330,7 +336,7 @@ def track_pokemon_search(user_id: int, search_data: SearchHistoryCreate, db: Ses
             pokemon_sprite=search_data.pokemon_sprite,
             pokemon_types=search_data.pokemon_types,
             search_count=1,
-            last_searched=datetime.utcnow()
+            last_searched=utc_now()
         )
         db.add(new_search)
         db.commit()
@@ -438,7 +444,7 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
     
     for search in user_searches:
         # Score basado en frecuencia de búsqueda y recencia
-        days_since_last_search = (datetime.utcnow() - search.last_searched).days
+        days_since_last_search = (utc_now() - search.last_searched).days
         recency_factor = max(0.1, 1.0 - (days_since_last_search / 30))  # Decae en 30 días
         relevance_score = float(search.search_count * recency_factor * 10)  # Factor 10 para búsquedas
         

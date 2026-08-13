@@ -1,5 +1,8 @@
+import logging
+import os
 from datetime import datetime, timedelta
 from typing import Annotated, Optional
+
 import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
@@ -8,13 +11,23 @@ from app.models.user import UserCreate
 from app.models.database import User
 from app.database import get_db
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
-import os
 from dotenv import load_dotenv
+
+from app.utils.dates import utc_now
 
 load_dotenv()
 
-# Configuración desde variables de entorno
-secret_key = os.getenv("SECRET_KEY", "default-secret-key-change-this")
+logger = logging.getLogger("pokemon-api.auth")
+
+# Sin default en claro: firmar JWT con un secreto conocido invalida toda la autenticación.
+_SECRET_DEV_ONLY = "dev-secret-no-usar-en-produccion"
+secret_key = os.getenv("SECRET_KEY")
+if not secret_key:
+    if os.getenv("ENVIRONMENT") == "production":
+        raise RuntimeError("SECRET_KEY no definida: en producción es obligatoria")
+    logger.warning("SECRET_KEY ausente; usando clave de desarrollo (no apta para producción)")
+    secret_key = _SECRET_DEV_ONLY
+
 algorithm = "HS256"
 access_token_expire_minutes = 30
 
@@ -51,26 +64,23 @@ def get_user_by_email(email: str, db: Session):
     return db.query(User).filter(User.email == email).first()
 
 def authenticate_user(email: str, password: str, db: Session):
-    print(f"🔍 Autenticando: {email}")
+    # Sin PII en logs: un log con email + resultado de password facilita enumeración
+    # de cuentas a cualquiera con acceso a los logs del contenedor.
     user = get_user_by_email(email, db)
     if not user:
-        print(f"❌ Usuario no existe: {email}")
+        logger.debug("Login rechazado: usuario no registrado")
         return False
-    
-    print(f"✅ Usuario encontrado: {user.email}")
-    is_valid = verify_password(password, user.hashed_password)
-    print(f"🔑 Password válida: {is_valid}")
-    
-    if not is_valid:
+    if not verify_password(password, user.hashed_password):
+        logger.debug("Login rechazado: password incorrecta (user_id=%s)", user.id)
         return False
     return user
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = utc_now() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = utc_now() + timedelta(minutes=15)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt

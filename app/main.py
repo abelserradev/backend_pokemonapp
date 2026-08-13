@@ -60,8 +60,9 @@ app.add_middleware(
     CORSMiddleware,
     allow_origins=allowed_origins,  # URLs permitidas desde .env
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    # Métodos explícitos: "*" con credentials=True es una superficie innecesaria
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 
 app.include_router(auth.router, prefix="/api")
@@ -89,4 +90,6 @@ def health_check(db: Annotated[Session, Depends(get_db)]):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 3000))
+    # nosec B104 - 0.0.0.0 es intencional: el proceso corre dentro de un contenedor
+    # Docker y Traefik/Coolify es quien expone y filtra el tráfico externo.
     uvicorn.run(app, host="0.0.0.0", port=port)
