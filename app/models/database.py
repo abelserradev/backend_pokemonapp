@@ -5,6 +5,10 @@ from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 
+# Regla de negocio de borrado: los hijos (equipos, sesiones, favoritos, historial)
+# no existen sin su padre; al borrar el padre se eliminan en cascada.
+CASCADE_DELETE_ORPHAN = "all, delete-orphan"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -16,11 +20,11 @@ class User(Base):
     updated_at = Column(DateTime, onupdate=func.now())
     
     # Relaciones
-    pokemon_team = relationship("UserPokemon", back_populates="user", cascade="all, delete-orphan")
-    training_sessions = relationship("TrainingSession", back_populates="user", cascade="all, delete-orphan")
-    favorite_pokemon = relationship("FavoritePokemon", back_populates="user", cascade="all, delete-orphan")
-    search_history = relationship("SearchHistory", back_populates="user", cascade="all, delete-orphan")
-    pokemon_teams = relationship("PokemonTeam", back_populates="user", cascade="all, delete-orphan")
+    pokemon_team = relationship("UserPokemon", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    training_sessions = relationship("TrainingSession", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    favorite_pokemon = relationship("FavoritePokemon", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    search_history = relationship("SearchHistory", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
+    pokemon_teams = relationship("PokemonTeam", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
 
 class UserPokemon(Base):
     __tablename__ = "user_pokemon"
@@ -128,7 +132,7 @@ class PokemonTeam(Base):
     
     # Relaciones
     user = relationship("User", back_populates="pokemon_teams")
-    team_members = relationship("PokemonTeamMember", back_populates="team", cascade="all, delete-orphan")
+    team_members = relationship("PokemonTeamMember", back_populates="team", cascade=CASCADE_DELETE_ORPHAN)
 
 
 class PokemonTeamMember(Base):
