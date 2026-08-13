@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
 from typing import List
@@ -23,6 +25,10 @@ from app.service.pokemon import (
 from app.service.auth import get_current_user
 from app.database import get_db
 from app.utils.dates import utc_now
+
+logger = logging.getLogger("pokemon-api.pokemon")
+
+MSG_ERROR_INTERNO = "Error interno del servidor"
 
 router = APIRouter()
 
@@ -50,12 +56,10 @@ async def clear_team(
             "deleted_count": deleted_count
         }
         
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al limpiar el equipo: {str(e)}"
-        )
+        logger.exception("Error al limpiar el equipo actual")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.delete("/training/clear-all")
@@ -80,12 +84,10 @@ async def clear_all_training_sessions(
             "deleted_count": deleted_count
         }
         
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al limpiar sesiones de training: {str(e)}"
-        )
+        logger.exception("Error al limpiar sesiones de training")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 # ===== EQUIPO POKÉMON =====
 
@@ -99,9 +101,10 @@ async def add_to_team(
     try:
         return add_pokemon_to_team(current_user.id, pokemon_data, db)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception:
+        logger.exception("Error al agregar pokémon al equipo")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 @router.get("/team", response_model=List[UserPokemonResponse])
 async def get_team(
@@ -210,8 +213,9 @@ async def get_smart_favorites_endpoint(
 ):
     try:
         return get_smart_favorites(current_user.id, limit, db)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener favoritos inteligentes: {str(e)}")
+    except Exception:
+        logger.exception("Error al obtener favoritos inteligentes")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 @router.post("/search/track", response_model=SearchHistoryResponse)
 async def track_pokemon_search_endpoint(
@@ -222,8 +226,9 @@ async def track_pokemon_search_endpoint(
     
     try:
         return track_pokemon_search(current_user.id, search_data, db)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al registrar búsqueda: {str(e)}")
+    except Exception:
+        logger.exception("Error al registrar búsqueda de pokémon")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 @router.get("/search/history", response_model=List[SearchHistoryResponse])
 async def get_user_search_history_endpoint(
@@ -234,8 +239,9 @@ async def get_user_search_history_endpoint(
     
     try:
         return get_user_search_history(current_user.id, limit, db)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener historial: {str(e)}")
+    except Exception:
+        logger.exception("Error al obtener historial de búsqueda")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 
@@ -268,10 +274,11 @@ async def create_team(
         
         return result
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception:
         db.rollback()
-        raise HTTPException(status_code=500, detail=f"Error al crear equipo: {str(e)}")
+        logger.exception("Error al crear equipo guardado")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.get("/teams", response_model=List[PokemonTeamResponse])
@@ -282,8 +289,9 @@ async def get_all_teams(
 
     try:
         return get_user_teams(current_user.id, db)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener equipos: {str(e)}")
+    except Exception:
+        logger.exception("Error al listar equipos guardados")
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.get("/teams/{team_id}", response_model=PokemonTeamResponse)
@@ -296,9 +304,10 @@ async def get_team(
     try:
         return get_team_by_id(current_user.id, team_id, db)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al obtener equipo: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception:
+        logger.exception("Error al obtener equipo guardado (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.put("/teams/{team_id}", response_model=PokemonTeamResponse)
@@ -312,9 +321,10 @@ async def update_team(
     try:
         return update_pokemon_team(current_user.id, team_id, update_data, db)
     except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar equipo: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e)) from e
+    except Exception:
+        logger.exception("Error al actualizar equipo guardado (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.delete("/teams/{team_id}")
@@ -327,9 +337,10 @@ async def delete_team(
     try:
         return delete_pokemon_team(current_user.id, team_id, db)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al eliminar equipo: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception:
+        logger.exception("Error al eliminar equipo guardado (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.patch("/teams/{team_id}/favorite", response_model=PokemonTeamResponse)
@@ -342,9 +353,10 @@ async def toggle_team_favorite(
     try:
         return toggle_favorite_team(current_user.id, team_id, db)
     except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error al actualizar favorito: {str(e)}")
+        raise HTTPException(status_code=404, detail=str(e)) from e
+    except Exception:
+        logger.exception("Error al alternar favorito de equipo (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.post("/teams/{team_id}/load-for-training")
@@ -496,12 +508,10 @@ async def load_team_for_training(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al cargar equipo para entrenamiento: {str(e)}"
-        )
+        logger.exception("Error al cargar equipo para entrenamiento (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.patch("/teams/{team_id}/update-evs")
@@ -579,12 +589,10 @@ async def update_team_evs(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500, 
-            detail=f"Error al actualizar EVs: {str(e)}"
-        )
+        logger.exception("Error al actualizar EVs del equipo (team_id=%s)", team_id)
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.patch("/teams/{team_id}/members/{member_id}/nickname", response_model=PokemonTeamMemberResponse)
@@ -644,12 +652,14 @@ async def update_team_member_nickname(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al actualizar nickname: {str(e)}"
+        logger.exception(
+            "Error al actualizar nickname (team_id=%s, member_id=%s)",
+            team_id,
+            member_id,
         )
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 
 @router.patch("/teams/{team_id}/members/{member_id}/level", response_model=PokemonTeamMemberResponse)
@@ -705,12 +715,14 @@ async def update_team_member_level(
         
     except HTTPException:
         raise
-    except Exception as e:
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al actualizar nivel: {str(e)}"
+        logger.exception(
+            "Error al actualizar nivel (team_id=%s, member_id=%s)",
+            team_id,
+            member_id,
         )
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
 
 @router.patch("/teams/{team_id}/members/{member_id}/moves", response_model=PokemonTeamMemberResponse)
 async def update_team_member_moves(
@@ -767,14 +779,12 @@ async def update_team_member_moves(
     except HTTPException:
         raise
     except ValueError as e:
-        # Errores de validación de Pydantic
-        raise HTTPException(
-            status_code=422,
-            detail=str(e)
-        )
-    except Exception as e:
+        raise HTTPException(status_code=422, detail=str(e)) from e
+    except Exception:
         db.rollback()
-        raise HTTPException(
-            status_code=500,
-            detail=f"Error al actualizar movimientos: {str(e)}"
+        logger.exception(
+            "Error al actualizar movimientos (team_id=%s, member_id=%s)",
+            team_id,
+            member_id,
         )
+        raise HTTPException(status_code=500, detail=MSG_ERROR_INTERNO) from None
