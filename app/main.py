@@ -90,6 +90,6 @@ def health_check(db: Annotated[Session, Depends(get_db)]):
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", 3000))
-    # nosec B104 - 0.0.0.0 es intencional: el proceso corre dentro de un contenedor
-    # Docker y Traefik/Coolify es quien expone y filtra el tráfico externo.
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    # 0.0.0.0 es intencional: el proceso corre dentro de un contenedor Docker
+    # y Traefik/Coolify es quien expone y filtra el tráfico externo.
+    uvicorn.run(app, host="0.0.0.0", port=port)  # nosec B104

@@ -19,8 +19,9 @@ load_dotenv()
 
 logger = logging.getLogger("pokemon-api.auth")
 
-# Sin default en claro: firmar JWT con un secreto conocido invalida toda la autenticación.
-_SECRET_DEV_ONLY = "dev-secret-no-usar-en-produccion"
+# Sin default en claro para producción: firmar JWT con un secreto conocido
+# invalida toda la autenticación. El fallback es solo para desarrollo local.
+_SECRET_DEV_ONLY = "dev-secret-no-usar-en-produccion"  # nosec B105
 secret_key = os.getenv("SECRET_KEY")
 if not secret_key:
     if os.getenv("ENVIRONMENT") == "production":
