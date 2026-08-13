@@ -9,6 +9,9 @@ Base = declarative_base()
 # no existen sin su padre; al borrar el padre se eliminan en cascada.
 CASCADE_DELETE_ORPHAN = "all, delete-orphan"
 
+# Referencia FK a la tabla users: centralizada porque 6 tablas cuelgan de ella
+USERS_ID_FK = "users.id"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -30,7 +33,7 @@ class UserPokemon(Base):
     __tablename__ = "user_pokemon"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     pokemon_id = Column(Integer, nullable=False)  # ID del pokémon de la API
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
@@ -46,7 +49,7 @@ class TrainingSession(Base):
     __tablename__ = "training_sessions"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     pokemon_id = Column(Integer, nullable=False)
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
@@ -77,7 +80,7 @@ class FavoritePokemon(Base):
     __tablename__ = "favorite_pokemon"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     pokemon_id = Column(Integer, nullable=False, unique=True)
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
@@ -97,7 +100,7 @@ class UserToken(Base):
     __tablename__ = "user_tokens"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     token = Column(String(500), nullable=False)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
@@ -106,7 +109,7 @@ class SearchHistory(Base):
     __tablename__ = "search_history"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     pokemon_id = Column(Integer, nullable=False)
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
@@ -123,7 +126,7 @@ class PokemonTeam(Base):
     __tablename__ = "pokemon_teams"
 
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    user_id = Column(Integer, ForeignKey(USERS_ID_FK), nullable=False)
     team_name = Column(String(100), nullable=False)
     description = Column(String(500))
     is_favorite = Column(Boolean, default=False)

@@ -29,6 +29,7 @@ env/
 ENV/
 env.bak/
 venv.bak/
+.audit-venv/
 
 # IDEs
 .vscode/
@@ -49,6 +50,8 @@ venv.bak/
 *.db
 *.sqlite
 *.sqlite3
+test_pokemon_pytest.db
+test_ci.db
 
 # Logs
 *.log
@@ -62,3 +65,6 @@ htmlcov/
 # Railway
 .railway/
 
+codegraph/
+
+analysis/

@@ -255,3 +255,25 @@ class UpdateMovesRequest(BaseModel):
         
         # Convertir cadenas vacías a None
         return v.strip() if v and len(v.strip()) > 0 else None
+
+
+# Actualización de EVs en equipos guardados (PATCH update-evs)
+class UpdateTeamMemberEvs(BaseModel):
+    pokemon_id: int = Field(..., gt=0)
+    evs: Dict[str, int]
+
+    @field_validator("evs")
+    @classmethod
+    def validar_evs(cls, evs: Dict[str, int]) -> Dict[str, int]:
+        if not evs:
+            raise ValueError("Los EVs no pueden estar vacíos")
+        for stat, puntos in evs.items():
+            if puntos < 0 or puntos > 252:
+                raise ValueError(f"EV inválido para {stat}: debe estar entre 0 y 252")
+        if sum(evs.values()) > 510:
+            raise ValueError("La suma de EVs no puede superar 510")
+        return evs
+
+
+class UpdateTeamEvsRequest(BaseModel):
+    updated_members: List[UpdateTeamMemberEvs] = Field(..., min_length=1)

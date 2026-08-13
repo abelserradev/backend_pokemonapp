@@ -1,0 +1,46 @@
+# Propuesto por code-audit — FastAPI backend_pokemonapp
+# Install: pip install pre-commit && pre-commit install
+# CI debe replicar bandit + pip-audit + pytest (ver .github/workflows/ci.yml)
+default_language_version:
+  python: python3
+exclude: |
+  (?x)^(
+    \.audit-venv/.*|
+    \.venv/.*|
+    \.git/.*
+  )$
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.21.2
+    hooks:
+      - id: gitleaks
+        name: "secrets: Gitleaks"
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-merge-conflict
+      - id: detect-private-key
+  - repo: https://github.com/PyCQA/bandit
+    rev: 1.8.3
+    hooks:
+      - id: bandit
+        name: "sast: Bandit (medium+)"
+        args: [-r, app/, --severity-level=medium, -q]
+        pass_filenames: false
+  - repo: local
+    hooks:
+      - id: pip-audit
+        name: "sca: pip-audit (requirements.txt)"
+        language: system
+        entry: bash -c 'pip-audit -r requirements.txt --desc on'
+        pass_filenames: false
+        files: ^requirements\.txt$
+      - id: compileall
+        name: "syntax: python compileall app/"
+        language: system
+        entry: python3 -m compileall app -q
+        pass_filenames: false
+        files: ^app/

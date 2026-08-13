@@ -1,27 +1,27 @@
 # Usar imagen oficial de Python
 FROM python:3.11-slim
 
-# Establecer el directorio de trabajo
 WORKDIR /app
 
 # database.py usa esto para no cargar .env.local dentro del contenedor
-ENV DOCKER_CONTAINER=1
-ENV ENVIRONMENT=production
+ENV DOCKER_CONTAINER=1 \
+    ENVIRONMENT=production
 
-# Copiar archivos de dependencias
+# Usuario dedicado antes del COPY final (--chown evita RUN chown -R)
+RUN addgroup --system app && adduser --system --ingroup app --home /app app
+
 COPY requirements.txt .
 
-# Instalar dependencias
-RUN pip install --no-cache-dir --upgrade pip && \
+# pip con versión fija: Hadolint DL3013 exige pin en cada pip install
+RUN pip install --no-cache-dir "pip==25.0.1" && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copiar todo el código de la aplicación
-COPY . .
+COPY --chown=app:app . .
 
-# Hacer el script ejecutable
 RUN chmod +x start.sh
 
-# Uvicorn usa PORT del entorno (Coolify suele 3000)
 EXPOSE 3000
+
+USER app
 
 CMD ["./start.sh"]

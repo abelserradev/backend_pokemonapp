@@ -86,6 +86,20 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
     encoded_jwt = jwt.encode(to_encode, secret_key, algorithm=algorithm)
     return encoded_jwt
 
+
+def build_token_response(user: User, *, include_user: bool = True) -> dict:
+    """Respuesta unificada de login: evita duplicar expiración y payload JWT en rutas."""
+    access_token_expires = timedelta(minutes=access_token_expire_minutes)
+    access_token = create_access_token(
+        data={"sub": user.email},
+        expires_delta=access_token_expires,
+    )
+    payload: dict = {"access_token": access_token, "token_type": "bearer"}
+    if include_user:
+        payload["user"] = {"id": user.id, "email": user.email}
+    return payload
+
+
 def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     db: Annotated[Session, Depends(get_db)],

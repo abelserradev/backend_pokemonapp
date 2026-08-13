@@ -1,5 +1,6 @@
 import logging
 
+import requests
 from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from app.models.database import UserPokemon, TrainingSession, FavoritePokemon, SearchHistory
@@ -12,7 +13,7 @@ from typing import List, Dict, Any
 from app.models.database import PokemonTeam, PokemonTeamMember
 from app.models.pokemon import (
     PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
-    PokemonTeamMemberResponse
+    PokemonTeamMemberResponse, UpdateTeamEvsRequest
 )
 from app.utils.dates import utc_now
 
@@ -689,3 +690,159 @@ def toggle_favorite_team(user_id: int, team_id: int, db: Session) -> PokemonTeam
     db.refresh(team)
     
     return team
+
+
+def _obtener_base_stats_pokeapi(pokemon_id: int) -> Dict[str, int]:
+    """Stats base desde PokeAPI; fallback fijo si la red falla (entrenamiento offline)."""
+    stats_por_defecto = {
+        "hp": 50,
+        "attack": 50,
+        "defense": 50,
+        "special-attack": 50,
+        "special-defense": 50,
+        "speed": 50,
+    }
+    try:
+        response = requests.get(
+            f"https://pokeapi.co/api/v2/pokemon/{pokemon_id}",
+            timeout=5,
+        )
+        response.raise_for_status()
+        pokemon_data = response.json()
+        return {
+            "hp": pokemon_data["stats"][0]["base_stat"],
+            "attack": pokemon_data["stats"][1]["base_stat"],
+            "defense": pokemon_data["stats"][2]["base_stat"],
+            "special-attack": pokemon_data["stats"][3]["base_stat"],
+            "special-defense": pokemon_data["stats"][4]["base_stat"],
+            "speed": pokemon_data["stats"][5]["base_stat"],
+        }
+    except Exception:
+        logger.warning(
+            "PokeAPI no respondió para pokemon_id=%s; usando stats por defecto",
+            pokemon_id,
+            exc_info=True,
+        )
+        return stats_por_defecto
+
+
+def load_team_for_training(user_id: int, team_id: int, db: Session) -> Dict[str, Any]:
+    """
+    Copia un equipo guardado al slot activo (user_pokemon) y crea sesiones de training.
+    La lógica vive aquí para mantener la ruta delgada (R-07).
+    """
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id,
+    ).first()
+    if not team:
+        raise ValueError("Equipo no encontrado")
+
+    db.query(UserPokemon).filter(UserPokemon.user_id == user_id).delete()
+    db.query(TrainingSession).filter(TrainingSession.user_id == user_id).delete()
+    db.commit()
+
+    for member in team.team_members:
+        db.add(
+            UserPokemon(
+                user_id=user_id,
+                pokemon_id=member.pokemon_id,
+                pokemon_name=member.pokemon_name,
+                pokemon_sprite=member.pokemon_sprite,
+                selected_ability=member.selected_ability or "",
+                level=member.level,
+            )
+        )
+    db.commit()
+
+    sessions_created: List[TrainingSession] = []
+    evs_vacios = {
+        "hp": 0,
+        "attack": 0,
+        "defense": 0,
+        "special-attack": 0,
+        "special-defense": 0,
+        "speed": 0,
+    }
+
+    for member in team.team_members:
+        base_stats = _obtener_base_stats_pokeapi(member.pokemon_id)
+        current_evs = member.evs or evs_vacios
+        total_evs = sum(current_evs.values())
+        remaining_points = 510 - total_evs
+        max_evs = {
+            stat: base_stats[stat] + int(current_evs.get(stat, 0) / 4)
+            for stat in base_stats
+        }
+        training_session = TrainingSession(
+            user_id=user_id,
+            pokemon_id=member.pokemon_id,
+            pokemon_name=member.pokemon_name,
+            pokemon_sprite=member.pokemon_sprite,
+            pokemon_types=member.pokemon_types,
+            base_stats=base_stats,
+            current_evs=current_evs,
+            max_evs=max_evs,
+            total_ev_points=total_evs,
+            max_ev_points=510,
+            remaining_points=remaining_points,
+            is_completed=remaining_points <= 0,
+        )
+        db.add(training_session)
+        db.flush()
+        sessions_created.append(training_session)
+
+    db.commit()
+    loaded_team = db.query(UserPokemon).filter(UserPokemon.user_id == user_id).all()
+
+    return {
+        "message": f"Equipo '{team.team_name}' cargado exitosamente para entrenamiento",
+        "team_loaded": {
+            "id": team.id,
+            "name": team.team_name,
+            "pokemon_count": len(loaded_team),
+        },
+        "sessions_created": [
+            {
+                "id": session.id,
+                "pokemon_name": session.pokemon_name,
+                "current_evs": session.current_evs,
+                "training_points": session.remaining_points,
+            }
+            for session in sessions_created
+        ],
+    }
+
+
+def update_team_evs(
+    user_id: int,
+    team_id: int,
+    request: UpdateTeamEvsRequest,
+    db: Session,
+) -> Dict[str, Any]:
+    team = db.query(PokemonTeam).filter(
+        PokemonTeam.id == team_id,
+        PokemonTeam.user_id == user_id,
+    ).first()
+    if not team:
+        raise ValueError("Equipo no encontrado")
+
+    updated_count = 0
+    for update_data in request.updated_members:
+        member = db.query(PokemonTeamMember).filter(
+            PokemonTeamMember.team_id == team_id,
+            PokemonTeamMember.pokemon_id == update_data.pokemon_id,
+        ).first()
+        if member:
+            member.evs = update_data.evs
+            updated_count += 1
+
+    team.updated_at = utc_now()
+    db.commit()
+
+    return {
+        "message": f"EVs actualizados en {updated_count} Pokémon",
+        "team_id": team_id,
+        "team_name": team.team_name,
+        "updated_count": updated_count,
+    }
