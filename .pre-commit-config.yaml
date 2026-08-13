@@ -1,6 +1,6 @@
 # Propuesto por code-audit — FastAPI backend_pokemonapp
 # Install: pip install pre-commit && pre-commit install
-# CI debe replicar bandit + pip-audit + pytest (tests aún por añadir)
+# CI debe replicar bandit + pip-audit + pytest (ver .github/workflows/ci.yml)
 default_language_version:
   python: python3
 exclude: |

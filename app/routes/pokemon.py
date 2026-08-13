@@ -10,7 +10,7 @@ from app.models.pokemon import (
     SearchHistoryCreate, SearchHistoryResponse, SmartFavoriteResponse,
     PokemonTeamCreate, PokemonTeamUpdate, PokemonTeamResponse,
     PokemonTeamMemberResponse, UpdateNicknameRequest, UpdateLevelRequest,
-    UpdateMovesRequest
+    UpdateMovesRequest, UpdateTeamEvsRequest
 )
 from app.utils.validators import validate_nickname
 from app.models.database import User, UserPokemon, TrainingSession, PokemonTeam, PokemonTeamMember
@@ -20,7 +20,8 @@ from app.service.pokemon import (
     add_favorite_pokemon, get_user_favorites, increment_pokemon_usage, remove_favorite_pokemon,
     track_pokemon_search, get_user_search_history, get_smart_favorites,
     create_pokemon_team, get_user_teams, get_team_by_id, 
-    update_pokemon_team, delete_pokemon_team, toggle_favorite_team
+    update_pokemon_team, delete_pokemon_team, toggle_favorite_team,
+    load_team_for_training, update_team_evs
 )
 from app.service.auth import get_current_user
 from app.database import get_db
@@ -360,152 +361,18 @@ async def toggle_team_favorite(
 
 
 @router.post("/teams/{team_id}/load-for-training")
-async def load_team_for_training(
+async def load_team_for_training_endpoint(
     team_id: int,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
     Cargar un equipo guardado para entrenamiento.
-    
-    Proceso:
-    1. Obtener el equipo guardado y validar que pertenece al usuario
-    2. Limpiar equipo actual (user_pokemon) y sesiones de training existentes
-    3. Copiar Pokémon del equipo guardado al equipo actual (user_pokemon)
-    4. Crear sesiones de training con los EVs existentes (obtiene base_stats de PokeAPI)
-    5. Hacer commit y verificar que todo se cargó correctamente
-    
-    IMPORTANTE: Los Pokémon se agregan a user_pokemon para que el componente
-    training pueda consultarlos y mostrarlos correctamente.
     """
-    import requests
-    
     try:
-        # 1. Obtener el equipo guardado
-        team = db.query(PokemonTeam).filter(
-            PokemonTeam.id == team_id,
-            PokemonTeam.user_id == current_user.id
-        ).first()
-        
-        if not team:
-            raise HTTPException(status_code=404, detail="Equipo no encontrado")
-        
-        # 2. Limpiar equipo actual y sesiones de training existentes
-        db.query(UserPokemon).filter(UserPokemon.user_id == current_user.id).delete()
-        db.query(TrainingSession).filter(TrainingSession.user_id == current_user.id).delete()
-        db.commit()
-        
-        # 3. Cargar Pokémon del equipo guardado al equipo actual (user_pokemon)
-        team_loaded = []
-        for member in team.team_members:
-            team_pokemon = UserPokemon(
-                user_id=current_user.id,
-                pokemon_id=member.pokemon_id,
-                pokemon_name=member.pokemon_name,
-                pokemon_sprite=member.pokemon_sprite,
-                selected_ability=member.selected_ability or '',
-                level=member.level
-            )
-            db.add(team_pokemon)
-            db.flush()
-            team_loaded.append(team_pokemon)
-        
-        db.commit()
-        
-        # 4. Crear sesiones de training para cada Pokémon
-        sessions_created = []
-        
-        for member in team.team_members:
-            # Obtener estadísticas base de PokeAPI
-            try:
-                response = requests.get(
-                    f"https://pokeapi.co/api/v2/pokemon/{member.pokemon_id}", 
-                    timeout=5
-                )
-                pokemon_data = response.json()
-                base_stats = {
-                    'hp': pokemon_data['stats'][0]['base_stat'],
-                    'attack': pokemon_data['stats'][1]['base_stat'],
-                    'defense': pokemon_data['stats'][2]['base_stat'],
-                    'special-attack': pokemon_data['stats'][3]['base_stat'],
-                    'special-defense': pokemon_data['stats'][4]['base_stat'],
-                    'speed': pokemon_data['stats'][5]['base_stat']
-                }
-            except Exception:
-                # Valores por defecto si falla la API
-                base_stats = {
-                    'hp': 50,
-                    'attack': 50,
-                    'defense': 50,
-                    'special-attack': 50,
-                    'special-defense': 50,
-                    'speed': 50
-                }
-            
-            # EVs actuales del equipo guardado
-            current_evs = member.evs or {
-                'hp': 0,
-                'attack': 0,
-                'defense': 0,
-                'special-attack': 0,
-                'special-defense': 0,
-                'speed': 0
-            }
-            
-            total_evs = sum(current_evs.values())
-            remaining_points = 510 - total_evs
-            
-            # Calcular max_evs (estadísticas con EVs aplicados)
-            max_evs = {
-                'hp': base_stats['hp'] + int(current_evs.get('hp', 0) / 4),
-                'attack': base_stats['attack'] + int(current_evs.get('attack', 0) / 4),
-                'defense': base_stats['defense'] + int(current_evs.get('defense', 0) / 4),
-                'special-attack': base_stats['special-attack'] + int(current_evs.get('special-attack', 0) / 4),
-                'special-defense': base_stats['special-defense'] + int(current_evs.get('special-defense', 0) / 4),
-                'speed': base_stats['speed'] + int(current_evs.get('speed', 0) / 4)
-            }
-            
-            training_session = TrainingSession(
-                user_id=current_user.id,
-                pokemon_id=member.pokemon_id,
-                pokemon_name=member.pokemon_name,
-                pokemon_sprite=member.pokemon_sprite,
-                pokemon_types=member.pokemon_types,
-                base_stats=base_stats,
-                current_evs=current_evs,
-                max_evs=max_evs,
-                total_ev_points=total_evs,
-                max_ev_points=510,
-                remaining_points=remaining_points,
-                is_completed=remaining_points <= 0
-            )
-            db.add(training_session)
-            db.flush()
-            sessions_created.append(training_session)
-        
-        db.commit()
-        
-        # Verificación final
-        loaded_team = db.query(UserPokemon).filter(UserPokemon.user_id == current_user.id).all()
-        
-        return {
-            "message": f"Equipo '{team.team_name}' cargado exitosamente para entrenamiento",
-            "team_loaded": {
-                "id": team.id,
-                "name": team.team_name,
-                "pokemon_count": len(loaded_team)
-            },
-            "sessions_created": [
-                {
-                    "id": session.id,
-                    "pokemon_name": session.pokemon_name,
-                    "current_evs": session.current_evs,
-                    "training_points": session.remaining_points
-                }
-                for session in sessions_created
-            ]
-        }
-        
+        return load_team_for_training(current_user.id, team_id, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception:
@@ -515,78 +382,19 @@ async def load_team_for_training(
 
 
 @router.patch("/teams/{team_id}/update-evs")
-async def update_team_evs(
+async def update_team_evs_endpoint(
     team_id: int,
-    request: dict,
+    request: UpdateTeamEvsRequest,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """
-    Actualizar los EVs de un equipo guardado.
-    
-    Se llama automáticamente desde el frontend después de aplicar training
-    para guardar los nuevos EVs en el equipo guardado.
-    
-    Request body:
-    {
-        "updated_members": [
-            {
-                "pokemon_id": 6,
-                "evs": {"hp": 252, "attack": 252, ...}
-            }
-        ]
-    }
+    Actualizar los EVs de un equipo guardado tras una sesión de training.
     """
     try:
-        # 1. Obtener el equipo guardado
-        team = db.query(PokemonTeam).filter(
-            PokemonTeam.id == team_id,
-            PokemonTeam.user_id == current_user.id
-        ).first()
-        
-        if not team:
-            raise HTTPException(status_code=404, detail="Equipo no encontrado")
-        
-        # 2. Obtener datos actualizados del request
-        updated_members = request.get('updated_members', [])
-        
-        if not updated_members:
-            raise HTTPException(
-                status_code=400, 
-                detail="No se proporcionaron datos para actualizar"
-            )
-        
-        # 3. Actualizar EVs de cada Pokémon
-        updated_count = 0
-        for update_data in updated_members:
-            pokemon_id = update_data.get('pokemon_id')
-            new_evs = update_data.get('evs')
-            
-            if not pokemon_id or not new_evs:
-                continue
-            
-            # Buscar el miembro del equipo
-            member = db.query(PokemonTeamMember).filter(
-                PokemonTeamMember.team_id == team_id,
-                PokemonTeamMember.pokemon_id == pokemon_id
-            ).first()
-            
-            if member:
-                member.evs = new_evs
-                updated_count += 1
-        
-        # 4. Actualizar timestamp del equipo
-        team.updated_at = utc_now()
-        
-        db.commit()
-        
-        return {
-            "message": f"EVs actualizados en {updated_count} Pokémon",
-            "team_id": team_id,
-            "team_name": team.team_name,
-            "updated_count": updated_count
-        }
-        
+        return update_team_evs(current_user.id, team_id, request, db)
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e)) from e
     except HTTPException:
         raise
     except Exception:

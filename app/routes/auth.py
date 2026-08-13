@@ -1,13 +1,12 @@
 import logging
-from datetime import timedelta
 from typing import Annotated
 
-from fastapi import APIRouter, HTTPException, Depends, status
+from fastapi import APIRouter, HTTPException, Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
 from app.models.user import UserCreate, UserLogin
 from app.models.database import User
-from app.service.auth import create_user, authenticate_user, create_access_token, get_current_user
+from app.service.auth import create_user, authenticate_user, get_current_user, build_token_response
 from app.database import get_db
 
 logger = logging.getLogger("pokemon-api.auth")
@@ -43,17 +42,7 @@ async def login(
         if not user:
             raise HTTPException(status_code=401, detail=MSG_CREDENCIALES_INCORRECTAS)
 
-        access_token_expires = timedelta(minutes=30)
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=access_token_expires
-        )
-
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {"id": user.id, "email": user.email}
-        }
+        return build_token_response(user)
     except HTTPException:
         raise
     except Exception:
@@ -73,17 +62,7 @@ async def login_json(credentials: UserLogin, db: Annotated[Session, Depends(get_
                 detail=MSG_CREDENCIALES_INCORRECTAS
             )
 
-        access_token_expires = timedelta(minutes=30)
-        access_token = create_access_token(
-            data={"sub": user.email},
-            expires_delta=access_token_expires
-        )
-
-        return {
-            "access_token": access_token,
-            "token_type": "bearer",
-            "user": {"id": user.id, "email": user.email}
-        }
+        return build_token_response(user)
     except HTTPException:
         raise
     except Exception:
@@ -106,11 +85,7 @@ async def login_for_access_token(
             detail=MSG_CREDENCIALES_INCORRECTAS,
             headers={"WWW-Authenticate": "Bearer"},
         )
-    access_token_expires = timedelta(minutes=30)
-    access_token = create_access_token(
-        data={"sub": user.email}, expires_delta=access_token_expires
-    )
-    return {"access_token": access_token, "token_type": "bearer"}
+    return build_token_response(user, include_user=False)
 
 @router.get("/user/profile")
 async def get_user_profile(current_user: Annotated[User, Depends(get_current_user)]):
