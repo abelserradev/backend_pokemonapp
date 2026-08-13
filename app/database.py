@@ -44,11 +44,15 @@ if DATABASE_URL:
 if DATABASE_URL.startswith("mysql://"):
     DATABASE_URL = DATABASE_URL.replace("mysql://", "mysql+pymysql://", 1)
 
-try:
-    engine = create_engine(DATABASE_URL)
-    SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-except Exception as e:
-    raise
+# pool_pre_ping: tras un reinicio de MySQL el pool conserva sockets muertos y el
+# primer request explota con 2006/2013; el ping los descarta antes de usarlos.
+# pool_recycle: MySQL mata conexiones idle a las 8h (wait_timeout); reciclamos antes.
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=1800,
+)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Función para obtener la sesión de la base de datos
 def get_db():
