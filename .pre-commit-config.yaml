@@ -35,9 +35,9 @@ repos:
       - id: pip-audit
         name: "sca: pip-audit (requirements.txt)"
         language: system
-        entry: bash -c 'pip-audit -r requirements.txt --desc on'
+        entry: bash -c 'pip-audit -r requirements.txt -r requirements-dev.txt --desc on'
         pass_filenames: false
-        files: ^requirements\.txt$
+        files: ^requirements(-dev)?\.txt$
       - id: compileall
         name: "syntax: python compileall app/"
         language: system
