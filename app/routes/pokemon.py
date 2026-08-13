@@ -22,7 +22,7 @@ from app.service.pokemon import (
 )
 from app.service.auth import get_current_user
 from app.database import get_db
-from app.utils.validators import validate_nickname
+from app.utils.dates import utc_now
 
 router = APIRouter()
 
@@ -527,8 +527,6 @@ async def update_team_evs(
         ]
     }
     """
-    from datetime import datetime
-    
     try:
         # 1. Obtener el equipo guardado
         team = db.query(PokemonTeam).filter(
@@ -568,7 +566,7 @@ async def update_team_evs(
                 updated_count += 1
         
         # 4. Actualizar timestamp del equipo
-        team.updated_at = datetime.utcnow()
+        team.updated_at = utc_now()
         
         db.commit()
         
@@ -637,12 +635,11 @@ async def update_team_member_nickname(
         member.nickname = validated_nickname
         
         # Actualizar timestamp del equipo
-        from datetime import datetime
-        team.updated_at = datetime.utcnow()
-        
+        team.updated_at = utc_now()
+
         db.commit()
         db.refresh(member)
-        
+
         return member
         
     except HTTPException:
@@ -699,12 +696,11 @@ async def update_team_member_level(
         member.level = request.level
         
         # Actualizar timestamp del equipo
-        from datetime import datetime
-        team.updated_at = datetime.utcnow()
-        
+        team.updated_at = utc_now()
+
         db.commit()
         db.refresh(member)
-        
+
         return member
         
     except HTTPException:
@@ -761,12 +757,11 @@ async def update_team_member_moves(
             member.move_4 = request.move_4
         
         # Actualizar timestamp del equipo
-        from datetime import datetime
-        team.updated_at = datetime.utcnow()
-        
+        team.updated_at = utc_now()
+
         db.commit()
         db.refresh(member)
-        
+
         return member
         
     except HTTPException:
