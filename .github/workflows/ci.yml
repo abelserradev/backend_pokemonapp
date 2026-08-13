@@ -36,7 +36,7 @@ jobs:
         run: bandit -r app/ --severity-level=medium -q
 
       - name: SCA (pip-audit)
-        run: pip-audit -r requirements.txt
+        run: pip-audit -r requirements.txt -r requirements-dev.txt
 
       - name: Tests (pytest)
         env:
