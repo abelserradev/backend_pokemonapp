@@ -62,3 +62,6 @@ htmlcov/
 # Railway
 .railway/
 
+codegraph/
+
+analysis/

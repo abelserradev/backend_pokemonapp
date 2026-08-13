@@ -12,6 +12,9 @@ from app.database import get_db
 
 logger = logging.getLogger("pokemon-api.auth")
 
+
+MSG_CREDENCIALES_INCORRECTAS = "Credenciales incorrectas"
+
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
@@ -38,7 +41,7 @@ async def login(
     try:
         user = authenticate_user(form_data.username, form_data.password, db)
         if not user:
-            raise HTTPException(status_code=401, detail="Credenciales incorrectas")
+            raise HTTPException(status_code=401, detail=MSG_CREDENCIALES_INCORRECTAS)
 
         access_token_expires = timedelta(minutes=30)
         access_token = create_access_token(
@@ -55,7 +58,7 @@ async def login(
         raise
     except Exception:
         logger.exception("Error inesperado en login (form)")
-        raise HTTPException(status_code=401, detail="Credenciales incorrectas") from None
+        raise HTTPException(status_code=401, detail=MSG_CREDENCIALES_INCORRECTAS) from None
 
 @router.post("/login/json")
 async def login_json(credentials: UserLogin, db: Annotated[Session, Depends(get_db)]):
@@ -67,7 +70,7 @@ async def login_json(credentials: UserLogin, db: Annotated[Session, Depends(get_
         if not user:
             raise HTTPException(
                 status_code=401,
-                detail="Credenciales incorrectas"
+                detail=MSG_CREDENCIALES_INCORRECTAS
             )
 
         access_token_expires = timedelta(minutes=30)
@@ -88,7 +91,7 @@ async def login_json(credentials: UserLogin, db: Annotated[Session, Depends(get_
         logger.exception("Error inesperado en login (json)")
         raise HTTPException(
             status_code=401,
-            detail="Credenciales incorrectas"
+            detail=MSG_CREDENCIALES_INCORRECTAS
         ) from None
 
 @router.post("/token")
@@ -100,7 +103,7 @@ async def login_for_access_token(
     if not user:
         raise HTTPException(
             status_code=401,
-            detail="Credenciales incorrectas",
+            detail=MSG_CREDENCIALES_INCORRECTAS,
             headers={"WWW-Authenticate": "Bearer"},
         )
     access_token_expires = timedelta(minutes=30)
