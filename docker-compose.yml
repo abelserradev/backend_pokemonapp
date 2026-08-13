@@ -1,0 +1,21 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: pokemon-backend-api:prod
+    restart: unless-stopped
+    environment:
+      ENVIRONMENT: production
+      PORT: 8020
+      DATABASE_URL: ${DATABASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_ORIGINS: ${ALLOWED_ORIGINS}
+    ports:
+      - "8020:8020"
+    networks:
+      - coolify
+
+networks:
+  coolify:
+    external: true

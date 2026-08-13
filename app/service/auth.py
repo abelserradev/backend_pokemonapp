@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
-from jose import JWTError, jwt
+import jwt
 from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status, Depends
@@ -19,11 +19,9 @@ algorithm = "HS256"
 access_token_expire_minutes = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/token")
 
 def create_user(user_data: UserCreate, db: Session):
-    print(f"DEBUG - Email recibido: {user_data.email}")
-    
     # Verificar si el usuario ya existe
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
@@ -41,7 +39,6 @@ def create_user(user_data: UserCreate, db: Session):
     db.commit()
     db.refresh(db_user)
     
-    print(f"DEBUG - Usuario creado con ID: {db_user.id}")
     return {"message": "Usuario creado", "user": {"id": db_user.id, "email": db_user.email}}
 
 def get_password_hash(password: str):
@@ -54,10 +51,17 @@ def get_user_by_email(email: str, db: Session):
     return db.query(User).filter(User.email == email).first()
 
 def authenticate_user(email: str, password: str, db: Session):
+    print(f"🔍 Autenticando: {email}")
     user = get_user_by_email(email, db)
     if not user:
+        print(f"❌ Usuario no existe: {email}")
         return False
-    if not verify_password(password, user.hashed_password):
+    
+    print(f"✅ Usuario encontrado: {user.email}")
+    is_valid = verify_password(password, user.hashed_password)
+    print(f"🔑 Password válida: {is_valid}")
+    
+    if not is_valid:
         return False
     return user
 
@@ -82,7 +86,7 @@ def get_current_user(token: str = Depends(oauth2_scheme), db: Session = Depends(
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-    except JWTError:
+    except jwt.PyJWTError:
         raise credentials_exception
     
     user = db.query(User).filter(User.email == email).first()

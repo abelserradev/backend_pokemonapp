@@ -4,6 +4,10 @@ FROM python:3.11-slim
 # Establecer el directorio de trabajo
 WORKDIR /app
 
+# database.py usa esto para no cargar .env.local dentro del contenedor
+ENV DOCKER_CONTAINER=1
+ENV ENVIRONMENT=production
+
 # Copiar archivos de dependencias
 COPY requirements.txt .
 
@@ -14,9 +18,10 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copiar todo el código de la aplicación
 COPY . .
 
-# Exponer el puerto (Railway lo asigna dinámicamente)
-EXPOSE $PORT
+# Hacer el script ejecutable
+RUN chmod +x start.sh
 
-# Comando de inicio
-CMD uvicorn app.main:app --host 0.0.0.0 --port $PORT
+# Uvicorn usa PORT del entorno (Coolify suele 3000)
+EXPOSE 3000
 
+CMD ["./start.sh"]
