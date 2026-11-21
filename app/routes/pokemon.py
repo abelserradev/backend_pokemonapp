@@ -19,7 +19,7 @@ from app.service.pokemon import (
     create_training_session, update_training_session, get_user_training_sessions, delete_training_session,
     add_favorite_pokemon, get_user_favorites, increment_pokemon_usage, remove_favorite_pokemon,
     track_pokemon_search, get_user_search_history, get_smart_favorites,
-    create_pokemon_team, get_user_teams, get_team_by_id, 
+    create_pokemon_team, get_user_teams, get_team_by_id,
     update_pokemon_team, delete_pokemon_team, toggle_favorite_team,
     load_team_for_training, update_team_evs
 )
@@ -42,21 +42,21 @@ async def clear_team(
 ):
     """
     Eliminar todos los Pokémon del equipo actual del usuario.
-    
+
     Útil para limpiar manualmente el equipo y empezar desde cero.
     """
     try:
         deleted_count = db.query(UserPokemon).filter(
             UserPokemon.user_id == current_user.id
         ).delete()
-        
+
         db.commit()
-        
+
         return {
             "message": f"Equipo actual limpiado exitosamente",
             "deleted_count": deleted_count
         }
-        
+
     except Exception:
         db.rollback()
         logger.exception("Error al limpiar el equipo actual")
@@ -70,21 +70,21 @@ async def clear_all_training_sessions(
 ):
     """
     Eliminar todas las sesiones de training del usuario.
-    
+
     Útil para limpiar manualmente las sesiones y empezar desde cero.
     """
     try:
         deleted_count = db.query(TrainingSession).filter(
             TrainingSession.user_id == current_user.id
         ).delete()
-        
+
         db.commit()
-        
+
         return {
             "message": f"Sesiones de training limpiadas exitosamente",
             "deleted_count": deleted_count
         }
-        
+
     except Exception:
         db.rollback()
         logger.exception("Error al limpiar sesiones de training")
@@ -224,7 +224,7 @@ async def track_pokemon_search_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    
+
     try:
         return track_pokemon_search(current_user.id, search_data, db)
     except Exception:
@@ -237,7 +237,7 @@ async def get_user_search_history_endpoint(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    
+
     try:
         return get_user_search_history(current_user.id, limit, db)
     except Exception:
@@ -268,11 +268,11 @@ async def create_team(
     try:
         # Crear el equipo guardado
         result = create_pokemon_team(current_user.id, team_data, db)
-        
+
         # Limpiar el equipo actual para permitir crear un nuevo equipo
         db.query(UserPokemon).filter(UserPokemon.user_id == current_user.id).delete()
         db.commit()
-        
+
         return result
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e)) from e
@@ -413,7 +413,7 @@ async def update_team_member_nickname(
 ):
     """
     Actualizar el nickname (mote) de un Pokémon específico en un equipo guardado.
-    
+
     Validaciones:
     - Longitud máxima: 20 caracteres
     - Sin HTML tags (prevención XSS)
@@ -427,29 +427,29 @@ async def update_team_member_nickname(
             PokemonTeam.id == team_id,
             PokemonTeam.user_id == current_user.id
         ).first()
-        
+
         if not team:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Equipo no encontrado"
             )
-        
+
         # Buscar el miembro del equipo
         member = db.query(PokemonTeamMember).filter(
             PokemonTeamMember.id == member_id,
             PokemonTeamMember.team_id == team_id
         ).first()
-        
+
         if not member:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Miembro del equipo no encontrado"
             )
-        
+
         # Validar y actualizar nickname
         validated_nickname = validate_nickname(request.nickname)
         member.nickname = validated_nickname
-        
+
         # Actualizar timestamp del equipo
         team.updated_at = utc_now()
 
@@ -457,7 +457,7 @@ async def update_team_member_nickname(
         db.refresh(member)
 
         return member
-        
+
     except HTTPException:
         raise
     except Exception:
@@ -480,7 +480,7 @@ async def update_team_member_level(
 ):
     """
     Actualizar el nivel de un Pokémon específico en un equipo guardado.
-    
+
     Validaciones:
     - El nivel debe estar entre 1 y 100 (inclusive)
     - Debe ser un número entero
@@ -491,28 +491,28 @@ async def update_team_member_level(
             PokemonTeam.id == team_id,
             PokemonTeam.user_id == current_user.id
         ).first()
-        
+
         if not team:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Equipo no encontrado"
             )
-        
+
         # Buscar el miembro del equipo
         member = db.query(PokemonTeamMember).filter(
             PokemonTeamMember.id == member_id,
             PokemonTeamMember.team_id == team_id
         ).first()
-        
+
         if not member:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Miembro del equipo no encontrado"
             )
-        
+
         # Actualizar nivel
         member.level = request.level
-        
+
         # Actualizar timestamp del equipo
         team.updated_at = utc_now()
 
@@ -520,7 +520,7 @@ async def update_team_member_level(
         db.refresh(member)
 
         return member
-        
+
     except HTTPException:
         raise
     except Exception:
@@ -546,25 +546,25 @@ async def update_team_member_moves(
             PokemonTeam.id == team_id,
             PokemonTeam.user_id == current_user.id
         ).first()
-        
+
         if not team:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Equipo no encontrado"
             )
-        
+
         # Buscar el miembro del equipo
         member = db.query(PokemonTeamMember).filter(
             PokemonTeamMember.id == member_id,
             PokemonTeamMember.team_id == team_id
         ).first()
-        
+
         if not member:
             raise HTTPException(
-                status_code=404, 
+                status_code=404,
                 detail="Miembro del equipo no encontrado"
             )
-        
+
         # Actualizar solo los movimientos que se enviaron en el request
         # Si el campo no se envió (None), no se modifica
         if request.move_1 is not None:
@@ -575,7 +575,7 @@ async def update_team_member_moves(
             member.move_3 = request.move_3
         if request.move_4 is not None:
             member.move_4 = request.move_4
-        
+
         # Actualizar timestamp del equipo
         team.updated_at = utc_now()
 
@@ -583,7 +583,7 @@ async def update_team_member_moves(
         db.refresh(member)
 
         return member
-        
+
     except HTTPException:
         raise
     except ValueError as e:

@@ -21,7 +21,7 @@ class User(Base):
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    
+
     # Relaciones
     pokemon_team = relationship("UserPokemon", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
     training_sessions = relationship("TrainingSession", back_populates="user", cascade=CASCADE_DELETE_ORPHAN)
@@ -44,7 +44,7 @@ class UserPokemon(Base):
     nickname = Column(String(100))
     level = Column(Integer, default=1)
     added_at = Column(DateTime, server_default=func.now())
-    
+
     # Relación con usuario
     user = relationship("User", back_populates="pokemon_team")
 
@@ -57,25 +57,25 @@ class TrainingSession(Base):
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
     pokemon_types = Column(JSON)
-    
+
     # Estadísticas base
     base_stats = Column(JSON)  # {"hp": 45, "attack": 49, ...}
-    
+
     # EVs (Effort Values)
     current_evs = Column(JSON)  # {"hp": 0, "attack": 0, ...}
     max_evs = Column(JSON)  # {"hp": 252, "attack": 252, ...}
     total_ev_points = Column(Integer, default=0)
     max_ev_points = Column(Integer, default=510)
     remaining_points = Column(Integer, default=510)
-    
+
     # Estado
     is_completed = Column(Boolean, default=False)
     completed_at = Column(DateTime)
-    
+
     # Fechas
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    
+
     # Relación con usuario
     user = relationship("User", back_populates="training_sessions")
 
@@ -88,14 +88,14 @@ class FavoritePokemon(Base):
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
     pokemon_types = Column(JSON)  # ["grass", "poison"]
-    
+
     # Estadísticas de uso
     usage_count = Column(Integer, default=0)
     last_used = Column(DateTime)
-    
+
     # Fechas
     added_at = Column(DateTime, server_default=func.now())
-    
+
     # Relación con usuario
     user = relationship("User", back_populates="favorite_pokemon")
 
@@ -120,7 +120,7 @@ class SearchHistory(Base):
     search_count = Column(Integer, default=1)
     last_searched = Column(DateTime, server_default=func.now())
     created_at = Column(DateTime, server_default=func.now())
-    
+
     # Relación con usuario
     user = relationship("User", back_populates="search_history")
 
@@ -135,7 +135,7 @@ class PokemonTeam(Base):
     is_favorite = Column(Boolean, default=False)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, onupdate=func.now())
-    
+
     # Relaciones
     user = relationship("User", back_populates="pokemon_teams")
     team_members = relationship("PokemonTeamMember", back_populates="team", cascade=CASCADE_DELETE_ORPHAN)
@@ -164,6 +164,6 @@ class PokemonTeamMember(Base):
     evs = Column(JSON)  # {"hp": 252, "attack": 252, ...}
     ivs = Column(JSON)  # {"hp": 31, "attack": 31, ...}
     added_at = Column(DateTime, server_default=func.now())
-    
+
     # Relación
     team = relationship("PokemonTeam", back_populates="team_members")

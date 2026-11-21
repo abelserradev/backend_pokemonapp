@@ -11,18 +11,18 @@ import sys
 def main():
     # Establecer entorno de producción
     os.environ["ENVIRONMENT"] = "production"
-    
+
     print("🚀 Iniciando servidor en modo PRODUCCIÓN")
     print("☁️  Usando variables de entorno del sistema")
     print("🗄️  Base de datos: MySQL (Railway)")
     print("-" * 50)
-    
+
     try:
         # Iniciar uvicorn
         subprocess.run([
-            sys.executable, "-m", "uvicorn", 
-            "app.main:app", 
-            "--host", "0.0.0.0", 
+            sys.executable, "-m", "uvicorn",
+            "app.main:app",
+            "--host", "0.0.0.0",
             "--port", os.getenv("PORT", "3000")
         ])
     except KeyboardInterrupt:
