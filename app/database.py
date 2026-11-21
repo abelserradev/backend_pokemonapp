@@ -29,9 +29,9 @@ else:
 
 # URL de conexión - Prioridad: variables de entorno > SQLite local
 DATABASE_URL = (
-    os.getenv("MYSQL_DATABASE") or 
-    os.getenv("DATABASE_URL") or 
-    os.getenv("MYSQL_URL") or 
+    os.getenv("MYSQL_DATABASE") or
+    os.getenv("DATABASE_URL") or
+    os.getenv("MYSQL_URL") or
     os.getenv("MYSQL_DATABASE_URL") or
     "sqlite:///./pokemon_local.db"  # Fallback: Base de datos local SQLite
 )

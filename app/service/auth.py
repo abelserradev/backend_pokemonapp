@@ -40,19 +40,19 @@ def create_user(user_data: UserCreate, db: Session):
     existing_user = db.query(User).filter(User.email == user_data.email).first()
     if existing_user:
         raise ValueError("El usuario ya existe")
-    
+
     hashed_password = get_password_hash(user_data.password)
-    
+
     # Crear nuevo usuario
     db_user = User(
         email=user_data.email,
         hashed_password=hashed_password
     )
-    
+
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    
+
     return {"message": "Usuario creado", "user": {"id": db_user.id, "email": db_user.email}}
 
 def get_password_hash(password: str):
@@ -116,7 +116,7 @@ def get_current_user(
             raise credentials_exception
     except jwt.PyJWTError:
         raise credentials_exception
-    
+
     user = db.query(User).filter(User.email == email).first()
     if user is None:
         raise credentials_exception

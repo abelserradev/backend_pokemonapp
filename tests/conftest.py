@@ -12,12 +12,17 @@ os.environ.pop("DOCKER_CONTAINER", None)
 os.environ.pop("PORT", None)
 
 from app.main import app  # noqa: E402
+from app.database import engine  # noqa: E402
+from app.utils.schema_compat import ensure_holo_presentation_columns  # noqa: E402
 
 
 @pytest.fixture(scope="session")
 def client() -> TestClient:
+    # create_all does not ALTER existing SQLite tables; add nullable holo columns for tests
+    ensure_holo_presentation_columns(engine)
     with TestClient(app) as test_client:
         yield test_client
+
 
 
 @pytest.fixture

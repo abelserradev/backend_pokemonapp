@@ -25,21 +25,23 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
     team_count = db.query(UserPokemon).filter(UserPokemon.user_id == user_id).count()
     if team_count >= 6:
         raise ValueError("El equipo ya tiene 6 pokémon")
-    
+
     # NUEVO: Verificar si ya existe el mismo pokémon en el equipo
     existing_pokemon = db.query(UserPokemon).filter(
         UserPokemon.user_id == user_id,
         UserPokemon.pokemon_id == pokemon_data.pokemon_id
     ).first()
-    
+
     if existing_pokemon:
         raise ValueError(f"{pokemon_data.pokemon_name} ya está en tu equipo")
-    
+
     db_pokemon = UserPokemon(
         user_id=user_id,
         pokemon_id=pokemon_data.pokemon_id,
         pokemon_name=pokemon_data.pokemon_name,
         pokemon_sprite=pokemon_data.pokemon_sprite,
+        pokemon_artwork=pokemon_data.pokemon_artwork,
+        pokemon_types=pokemon_data.pokemon_types,
         selected_ability=pokemon_data.selected_ability,
         nickname=pokemon_data.nickname,
         level=pokemon_data.level
@@ -47,7 +49,7 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
     db.add(db_pokemon)
     db.commit()
     db.refresh(db_pokemon)
-    
+
     # IMPORTANTE: Crear sesión CON todos los datos
     if pokemon_data.base_stats:
         create_training_session_for_pokemon_with_details(
@@ -59,7 +61,7 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
             base_stats=pokemon_data.base_stats,
             db=db
         )
-    
+
     # DESPUÉS de agregar al equipo, registrar como búsqueda para favoritos inteligentes
     try:
         # Registrar la interacción con el Pokémon como búsqueda
@@ -74,7 +76,7 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
         # El tracking de búsqueda es secundario: no debe romper el alta del pokémon,
         # pero el error sí debe quedar registrado para detectar un fallo sistémico.
         logger.warning("No se pudo registrar la búsqueda (user_id=%s)", user_id, exc_info=True)
-    
+
     return db_pokemon
 
 def get_user_team(user_id: int, db: Session):
@@ -85,10 +87,10 @@ def remove_pokemon_from_team(user_id: int, pokemon_id: int, db: Session):
         UserPokemon.id == pokemon_id,
         UserPokemon.user_id == user_id
     ).first()
-    
+
     if not pokemon:
         raise ValueError("Pokémon no encontrado")
-    
+
     db.delete(pokemon)
     db.commit()
     return {"message": "Pokémon eliminado del equipo"}
@@ -100,10 +102,10 @@ def create_training_session(user_id: int, session_data: TrainingSessionCreate, d
         "hp": 0, "attack": 0, "defense": 0,
         "special-attack": 0, "special-defense": 0, "speed": 0
     }
-    
+
     max_evs = {"hp": 252, "attack": 252, "defense": 252,
                "special-attack": 252, "special-defense": 252, "speed": 252}
-    
+
     db_session = TrainingSession(
         user_id=user_id,
         pokemon_id=session_data.pokemon_id,
@@ -115,7 +117,7 @@ def create_training_session(user_id: int, session_data: TrainingSessionCreate, d
         max_ev_points=510,
         remaining_points=510
     )
-    
+
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
@@ -126,24 +128,24 @@ def update_training_session(user_id: int, session_id: int, update_data: Training
         TrainingSession.id == session_id,
         TrainingSession.user_id == user_id
     ).first()
-    
+
     if not session:
         raise ValueError("Sesión de entrenamiento no encontrada")
-    
+
     # Calcular total de EVs
     total_evs = sum(update_data.current_evs.values())
-    
+
     if total_evs > 510:
         raise ValueError("El total de EVs no puede exceder 510")
-    
+
     session.current_evs = update_data.current_evs
     session.total_ev_points = total_evs
     session.remaining_points = 510 - total_evs
     session.is_completed = update_data.is_completed
-    
+
     if update_data.is_completed:
         session.completed_at = utc_now()
-    
+
     db.commit()
     db.refresh(session)
     return session
@@ -156,10 +158,10 @@ def delete_training_session(user_id: int, session_id: int, db: Session):
         TrainingSession.id == session_id,
         TrainingSession.user_id == user_id
     ).first()
-    
+
     if not session:
         raise ValueError("Sesión de entrenamiento no encontrada")
-    
+
     db.delete(session)
     db.commit()
     return {"message": "Sesión de entrenamiento eliminada"}
@@ -171,10 +173,10 @@ def add_favorite_pokemon(user_id: int, pokemon_data: FavoritePokemonCreate, db: 
         FavoritePokemon.user_id == user_id,
         FavoritePokemon.pokemon_id == pokemon_data.pokemon_id
     ).first()
-    
+
     if existing:
         raise ValueError("Este pokémon ya está en favoritos")
-    
+
     db_favorite = FavoritePokemon(
         user_id=user_id,
         pokemon_id=pokemon_data.pokemon_id,
@@ -183,7 +185,7 @@ def add_favorite_pokemon(user_id: int, pokemon_data: FavoritePokemonCreate, db: 
         pokemon_types=pokemon_data.pokemon_types,
         usage_count=0
     )
-    
+
     db.add(db_favorite)
     db.commit()
     db.refresh(db_favorite)
@@ -193,14 +195,14 @@ def get_user_favorites(user_id: int, limit: int = 5, db: Session = None):
     if db is None:
         from app.database import get_db
         db = next(get_db())
-    
+
     favorites = db.query(FavoritePokemon).filter(
         FavoritePokemon.user_id == user_id
     ).order_by(
         FavoritePokemon.usage_count.desc(),  # Ordenar por más usados
         FavoritePokemon.last_used.desc()     # Luego por más recientes
     ).limit(limit).all()
-    
+
     return favorites
 
 def increment_pokemon_usage(user_id: int, pokemon_id: int, db: Session):
@@ -208,7 +210,7 @@ def increment_pokemon_usage(user_id: int, pokemon_id: int, db: Session):
         FavoritePokemon.user_id == user_id,
         FavoritePokemon.pokemon_id == pokemon_id
     ).first()
-    
+
     if favorite:
         favorite.usage_count += 1
         favorite.last_used = utc_now()
@@ -222,18 +224,18 @@ def remove_favorite_pokemon(user_id: int, pokemon_id: int, db: Session):
         FavoritePokemon.user_id == user_id,
         FavoritePokemon.pokemon_id == pokemon_id
     ).first()
-    
+
     if not favorite:
         raise ValueError("Pokémon favorito no encontrado")
-    
+
     db.delete(favorite)
     db.commit()
     return {"message": "Pokémon eliminado de favoritos"}
 
 # NUEVA FUNCIÓN: Crear sesión de entrenamiento para un pokémon
 def create_training_session_for_pokemon_with_details(
-    user_id: int, 
-    pokemon_id: int, 
+    user_id: int,
+    pokemon_id: int,
     pokemon_name: str,
     pokemon_sprite: str = None,
     pokemon_types: list = None,
@@ -245,10 +247,10 @@ def create_training_session_for_pokemon_with_details(
         TrainingSession.user_id == user_id,
         TrainingSession.pokemon_id == pokemon_id
     ).first()
-    
+
     if existing:
         return existing
-    
+
     # VALIDAR que base_stats no esté vacío
     if not base_stats or len(base_stats) == 0:
         base_stats = {
@@ -259,7 +261,7 @@ def create_training_session_for_pokemon_with_details(
             "special-defense": 65,
             "speed": 45
         }
-    
+
     current_evs = {
         "hp": 0,
         "attack": 0,
@@ -268,7 +270,7 @@ def create_training_session_for_pokemon_with_details(
         "special-defense": 0,
         "speed": 0
     }
-    
+
     max_evs = {
         "hp": 252,
         "attack": 252,
@@ -277,7 +279,7 @@ def create_training_session_for_pokemon_with_details(
         "special-defense": 252,
         "speed": 252
     }
-    
+
     db_session = TrainingSession(
         user_id=user_id,
         pokemon_id=pokemon_id,
@@ -291,11 +293,11 @@ def create_training_session_for_pokemon_with_details(
         max_ev_points=510,
         remaining_points=510
     )
-    
+
     db.add(db_session)
     db.commit()
     db.refresh(db_session)
-    
+
     return db_session
 
 # ===== SEARCH HISTORY & SMART FAVORITES =====
@@ -303,12 +305,12 @@ def create_training_session_for_pokemon_with_details(
 def track_pokemon_search(user_id: int, search_data: SearchHistoryCreate, db: Session) -> SearchHistory:
     """
     Registra o actualiza una búsqueda de Pokémon por un usuario.
-    
+
     Args:
         user_id: ID del usuario
         search_data: Datos del Pokémon buscado
         db: Sesión de base de datos
-        
+
     Returns:
         SearchHistory: Registro de búsqueda actualizado
     """
@@ -317,7 +319,7 @@ def track_pokemon_search(user_id: int, search_data: SearchHistoryCreate, db: Ses
         SearchHistory.user_id == user_id,
         SearchHistory.pokemon_id == search_data.pokemon_id
     ).first()
-    
+
     if existing_search:
         # Actualizar contador y timestamp
         existing_search.search_count += 1
@@ -347,19 +349,19 @@ def track_pokemon_search(user_id: int, search_data: SearchHistoryCreate, db: Ses
 def get_user_search_history(user_id: int, limit: int = 10, db: Session = None) -> List[SearchHistory]:
     """
     Obtiene el historial de búsquedas de un usuario.
-    
+
     Args:
         user_id: ID del usuario
         limit: Número máximo de resultados
         db: Sesión de base de datos
-        
+
     Returns:
         List[SearchHistory]: Lista de búsquedas ordenadas por relevancia
     """
     if db is None:
         from app.database import get_db
         db = next(get_db())
-    
+
     return db.query(SearchHistory).filter(
         SearchHistory.user_id == user_id
     ).order_by(
@@ -370,18 +372,18 @@ def get_user_search_history(user_id: int, limit: int = 10, db: Session = None) -
 def get_global_popular_pokemon(limit: int = 5, db: Session = None) -> List[SmartFavoriteResponse]:
     """
     Obtiene los Pokémon más populares globalmente basándose en búsquedas.
-    
+
     Args:
         limit: Número máximo de resultados
         db: Sesión de base de datos
-        
+
     Returns:
         List[SmartFavoriteResponse]: Lista de Pokémon populares con scores
     """
     if db is None:
         from app.database import get_db
         db = next(get_db())
-    
+
     # Consulta para obtener Pokémon más buscados globalmente
     popular_pokemon = db.query(
         SearchHistory.pokemon_id,
@@ -399,13 +401,13 @@ def get_global_popular_pokemon(limit: int = 5, db: Session = None) -> List[Smart
         desc('total_searches'),
         desc('unique_users')
     ).limit(limit).all()
-    
+
     # Convertir a SmartFavoriteResponse con scoring
     results = []
     for pokemon in popular_pokemon:
         # Calcular score de relevancia (búsquedas totales * usuarios únicos)
         relevance_score = float(pokemon.total_searches * pokemon.unique_users)
-        
+
         results.append(SmartFavoriteResponse(
             pokemon_id=pokemon.pokemon_id,
             pokemon_name=pokemon.pokemon_name,
@@ -414,27 +416,27 @@ def get_global_popular_pokemon(limit: int = 5, db: Session = None) -> List[Smart
             relevance_score=relevance_score,
             source="global_popular"
         ))
-    
+
     return results
 
 def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -> List[SmartFavoriteResponse]:
     """
     Obtiene favoritos basados en el comportamiento del usuario.
-    
+
     Args:
         user_id: ID del usuario
         limit: Número máximo de resultados
         db: Sesión de base de datos
-        
+
     Returns:
         List[SmartFavoriteResponse]: Lista de favoritos personalizados
     """
     if db is None:
         from app.database import get_db
         db = next(get_db())
-    
+
     results = []
-    
+
     # 1. Pokémon más buscados por el usuario (peso alto)
     user_searches = db.query(SearchHistory).filter(
         SearchHistory.user_id == user_id
@@ -442,13 +444,13 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
         desc(SearchHistory.search_count),
         desc(SearchHistory.last_searched)
     ).limit(limit * 2).all()  # Obtener más para filtrar después
-    
+
     for search in user_searches:
         # Score basado en frecuencia de búsqueda y recencia
         days_since_last_search = (utc_now() - search.last_searched).days
         recency_factor = max(0.1, 1.0 - (days_since_last_search / 30))  # Decae en 30 días
         relevance_score = float(search.search_count * recency_factor * 10)  # Factor 10 para búsquedas
-        
+
         results.append(SmartFavoriteResponse(
             pokemon_id=search.pokemon_id,
             pokemon_name=search.pokemon_name,
@@ -457,26 +459,26 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
             relevance_score=relevance_score,
             source="search_history"
         ))
-    
+
     # 2. Pokémon más usados en el equipo del usuario (peso medio)
     team_pokemon = db.query(UserPokemon).filter(
         UserPokemon.user_id == user_id
     ).all()
-    
+
     for pokemon in team_pokemon:
         # Verificar si ya está en los resultados de búsqueda
         if not any(r.pokemon_id == pokemon.pokemon_id for r in results):
             relevance_score = 5.0  # Score base para Pokémon del equipo
-            
+
             results.append(SmartFavoriteResponse(
                 pokemon_id=pokemon.pokemon_id,
                 pokemon_name=pokemon.pokemon_name,
                 pokemon_sprite=pokemon.pokemon_sprite,
-                pokemon_types=None,  # No tenemos tipos en UserPokemon
+                pokemon_types=pokemon.pokemon_types,
                 relevance_score=relevance_score,
                 source="team_usage"
             ))
-    
+
     # 3. Si no hay suficientes resultados, completar con Pokémon populares globalmente
     if len(results) < limit:
         global_popular = get_global_popular_pokemon(limit - len(results), db)
@@ -484,7 +486,7 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
             # Reducir score de Pokémon globales para que no dominen
             pokemon.relevance_score *= 0.5
             results.append(pokemon)
-    
+
     # Ordenar por score de relevancia y devolver los mejores
     results.sort(key=lambda x: x.relevance_score, reverse=True)
     return results[:limit]
@@ -492,27 +494,27 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
 def get_smart_favorites(user_id: int, limit: int = 5, db: Session = None) -> List[SmartFavoriteResponse]:
     """
     Obtiene favoritos inteligentes basándose en el comportamiento del usuario.
-    
+
     Para usuarios nuevos: devuelve Pokémon populares globalmente.
     Para usuarios existentes: devuelve favoritos personalizados.
-    
+
     Args:
         user_id: ID del usuario
         limit: Número máximo de resultados
         db: Sesión de base de datos
-        
+
     Returns:
         List[SmartFavoriteResponse]: Lista de favoritos inteligentes
     """
     if db is None:
         from app.database import get_db
         db = next(get_db())
-    
+
     # Verificar si el usuario tiene historial de búsquedas
     search_count = db.query(SearchHistory).filter(
         SearchHistory.user_id == user_id
     ).count()
-    
+
     if search_count == 0:
         # Usuario nuevo: devolver Pokémon más populares globalmente
         return get_global_popular_pokemon(limit, db)
@@ -528,16 +530,16 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
     # Validar cantidad de Pokémon
     if len(team_data.team_members) < 1 or len(team_data.team_members) > 6:
         raise ValueError("Un equipo debe tener entre 1 y 6 Pokémon")
-    
+
     # Validar posiciones únicas
     positions = [member.position for member in team_data.team_members]
     if len(positions) != len(set(positions)):
         raise ValueError("Las posiciones de los Pokémon deben ser únicas")
-    
+
     # Validar rango de posiciones (1-6)
     if any(pos < 1 or pos > 6 for pos in positions):
         raise ValueError("Las posiciones deben estar entre 1 y 6")
-    
+
     try:
         # Crear equipo
         new_team = PokemonTeam(
@@ -548,7 +550,7 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
         )
         db.add(new_team)
         db.flush()  # Para obtener el ID del equipo
-        
+
         # Agregar miembros del equipo
         for member_data in team_data.team_members:
             team_member = PokemonTeamMember(
@@ -556,6 +558,7 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
                 pokemon_id=member_data.pokemon_id,
                 pokemon_name=member_data.pokemon_name,
                 pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_artwork=member_data.pokemon_artwork,
                 pokemon_types=member_data.pokemon_types,
                 nickname=member_data.nickname,
                 level=member_data.level,
@@ -571,11 +574,11 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
                 ivs=member_data.ivs
             )
             db.add(team_member)
-        
+
         db.commit()
         db.refresh(new_team)
         return new_team
-        
+
     except Exception as e:
         db.rollback()
         raise
@@ -584,7 +587,7 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
 def get_user_teams(user_id: int, db: Session) -> List[PokemonTeamResponse]:
 
     teams = db.query(PokemonTeam).filter(PokemonTeam.user_id == user_id).order_by(
-        PokemonTeam.is_favorite.desc(), 
+        PokemonTeam.is_favorite.desc(),
         PokemonTeam.created_at.desc()
     ).all()
     return teams
@@ -596,10 +599,10 @@ def get_team_by_id(user_id: int, team_id: int, db: Session) -> PokemonTeamRespon
         PokemonTeam.id == team_id,
         PokemonTeam.user_id == user_id
     ).first()
-    
+
     if not team:
         raise ValueError("Equipo no encontrado")
-    
+
     return team
 
 
@@ -609,10 +612,10 @@ def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpda
         PokemonTeam.id == team_id,
         PokemonTeam.user_id == user_id
     ).first()
-    
+
     if not team:
         raise ValueError("Equipo no encontrado")
-    
+
     # Actualizar campos básicos
     if update_data.team_name is not None:
         team.team_name = update_data.team_name
@@ -620,16 +623,16 @@ def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpda
         team.description = update_data.description
     if update_data.is_favorite is not None:
         team.is_favorite = update_data.is_favorite
-    
+
     # Actualizar miembros si se proporcionan
     if update_data.team_members is not None:
         # Validar cantidad
         if len(update_data.team_members) < 1 or len(update_data.team_members) > 6:
             raise ValueError("Un equipo debe tener entre 1 y 6 Pokémon")
-        
+
         # Eliminar miembros existentes
         db.query(PokemonTeamMember).filter(PokemonTeamMember.team_id == team_id).delete()
-        
+
         # Agregar nuevos miembros
         for member_data in update_data.team_members:
             team_member = PokemonTeamMember(
@@ -637,6 +640,7 @@ def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpda
                 pokemon_id=member_data.pokemon_id,
                 pokemon_name=member_data.pokemon_name,
                 pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_artwork=member_data.pokemon_artwork,
                 pokemon_types=member_data.pokemon_types,
                 nickname=member_data.nickname,
                 level=member_data.level,
@@ -652,7 +656,7 @@ def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpda
                 ivs=member_data.ivs
             )
             db.add(team_member)
-    
+
     db.commit()
     db.refresh(team)
     return team
@@ -664,14 +668,14 @@ def delete_pokemon_team(user_id: int, team_id: int, db: Session) -> dict:
         PokemonTeam.id == team_id,
         PokemonTeam.user_id == user_id
     ).first()
-    
+
     if not team:
         raise ValueError("Equipo no encontrado")
-    
+
     team_name = team.team_name
     db.delete(team)
     db.commit()
-    
+
     return {"message": f"Equipo '{team_name}' eliminado exitosamente"}
 
 
@@ -681,14 +685,14 @@ def toggle_favorite_team(user_id: int, team_id: int, db: Session) -> PokemonTeam
         PokemonTeam.id == team_id,
         PokemonTeam.user_id == user_id
     ).first()
-    
+
     if not team:
         raise ValueError("Equipo no encontrado")
-    
+
     team.is_favorite = not team.is_favorite
     db.commit()
     db.refresh(team)
-    
+
     return team
 
 
@@ -749,6 +753,8 @@ def load_team_for_training(user_id: int, team_id: int, db: Session) -> Dict[str,
                 pokemon_id=member.pokemon_id,
                 pokemon_name=member.pokemon_name,
                 pokemon_sprite=member.pokemon_sprite,
+                pokemon_artwork=member.pokemon_artwork,
+                pokemon_types=member.pokemon_types,
                 selected_ability=member.selected_ability or "",
                 level=member.level,
             )

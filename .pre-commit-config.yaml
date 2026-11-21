@@ -1,5 +1,5 @@
 # Propuesto por code-audit — FastAPI backend_pokemonapp
-# Install: pip install pre-commit && pre-commit install
+# Install: pip install pre-commit && pre-commit install && pre-commit install --hook-type pre-push
 # CI debe replicar bandit + pip-audit + pytest (ver .github/workflows/ci.yml)
 default_language_version:
   python: python3
@@ -44,3 +44,18 @@ repos:
         entry: python3 -m compileall app -q
         pass_filenames: false
         files: ^app/
+      # Pre-push: smoke syntax + focused pytest (uses .venv when present)
+      - id: compileall-push
+        name: "syntax: compileall app/ (pre-push)"
+        language: system
+        entry: python3 -m compileall app -q
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
+      - id: pytest-push
+        name: "tests: pytest -q (pre-push)"
+        language: system
+        entry: bash -c 'PYTEST_BIN=".venv/bin/pytest"; if [ ! -x "$PYTEST_BIN" ]; then PYTEST_BIN="pytest"; fi; SECRET_KEY="${SECRET_KEY:-local-pre-push-secret-key-minimum-32-chars}" DATABASE_URL="${DATABASE_URL:-sqlite:///./.pre-push-test.db}" ENVIRONMENT=development "$PYTEST_BIN" -q'
+        pass_filenames: false
+        always_run: true
+        stages: [pre-push]
