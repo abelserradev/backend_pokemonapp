@@ -40,6 +40,8 @@ def add_pokemon_to_team(user_id: int, pokemon_data: UserPokemonCreate, db: Sessi
         pokemon_id=pokemon_data.pokemon_id,
         pokemon_name=pokemon_data.pokemon_name,
         pokemon_sprite=pokemon_data.pokemon_sprite,
+        pokemon_artwork=pokemon_data.pokemon_artwork,
+        pokemon_types=pokemon_data.pokemon_types,
         selected_ability=pokemon_data.selected_ability,
         nickname=pokemon_data.nickname,
         level=pokemon_data.level
@@ -472,7 +474,7 @@ def get_user_based_favorites(user_id: int, limit: int = 5, db: Session = None) -
                 pokemon_id=pokemon.pokemon_id,
                 pokemon_name=pokemon.pokemon_name,
                 pokemon_sprite=pokemon.pokemon_sprite,
-                pokemon_types=None,  # No tenemos tipos en UserPokemon
+                pokemon_types=pokemon.pokemon_types,
                 relevance_score=relevance_score,
                 source="team_usage"
             ))
@@ -556,6 +558,7 @@ def create_pokemon_team(user_id: int, team_data: PokemonTeamCreate, db: Session)
                 pokemon_id=member_data.pokemon_id,
                 pokemon_name=member_data.pokemon_name,
                 pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_artwork=member_data.pokemon_artwork,
                 pokemon_types=member_data.pokemon_types,
                 nickname=member_data.nickname,
                 level=member_data.level,
@@ -637,6 +640,7 @@ def update_pokemon_team(user_id: int, team_id: int, update_data: PokemonTeamUpda
                 pokemon_id=member_data.pokemon_id,
                 pokemon_name=member_data.pokemon_name,
                 pokemon_sprite=member_data.pokemon_sprite,
+                pokemon_artwork=member_data.pokemon_artwork,
                 pokemon_types=member_data.pokemon_types,
                 nickname=member_data.nickname,
                 level=member_data.level,
@@ -749,6 +753,8 @@ def load_team_for_training(user_id: int, team_id: int, db: Session) -> Dict[str,
                 pokemon_id=member.pokemon_id,
                 pokemon_name=member.pokemon_name,
                 pokemon_sprite=member.pokemon_sprite,
+                pokemon_artwork=member.pokemon_artwork,
+                pokemon_types=member.pokemon_types,
                 selected_ability=member.selected_ability or "",
                 level=member.level,
             )

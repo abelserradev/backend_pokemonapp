@@ -37,6 +37,9 @@ class UserPokemon(Base):
     pokemon_id = Column(Integer, nullable=False)  # ID del pokémon de la API
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
+    # Official artwork for holo cards; nullable so legacy sprite-only rows keep working
+    pokemon_artwork = Column(String(500))
+    pokemon_types = Column(JSON)
     selected_ability = Column(String(100))
     nickname = Column(String(100))
     level = Column(Integer, default=1)
@@ -146,6 +149,7 @@ class PokemonTeamMember(Base):
     pokemon_id = Column(Integer, nullable=False)  # ID del Pokémon de la API
     pokemon_name = Column(String(100), nullable=False)
     pokemon_sprite = Column(String(500))
+    pokemon_artwork = Column(String(500))
     pokemon_types = Column(JSON)
     nickname = Column(String(100))
     level = Column(Integer, default=1)
