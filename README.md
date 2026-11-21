@@ -226,4 +226,3 @@ Desarrollado con ❤️ para la gestión de Pokémon
 ---
 
 **¿Necesitas ayuda?** Abre un issue en el repositorio.
-

@@ -94,5 +94,3 @@ async def get_user_profile(current_user: Annotated[User, Depends(get_current_use
         "email": current_user.email,
         "created_at": current_user.created_at
     }
-
-    
